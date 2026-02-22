@@ -318,9 +318,13 @@ function startGPSFix() {
 
       updateLCD();
       updateMap();
+      serialPrint("SD card initialized. Logging to gpslog.csv");
 
       simInterval = setInterval(() => {
         printSerialData();
+        if (simState.hasFix) {
+          serialPrint("SD: Writing log entry...");
+        }
       }, 2000);
     }
   }, 800);
@@ -664,17 +668,26 @@ function drawWiringDiagram() {
 
   drawArduinoBoard(ctx, 300, 80, 200, 340);
   drawGPSModule(ctx, 50, 120, 180, 140);
-  drawLCDModule(ctx, 570, 120, 190, 120);
+  drawLCDModule(ctx, 570, 80, 190, 120);
+  drawSDModule(ctx, 570, 280, 190, 140);
 
   drawWire(ctx, 230, 165, 300, 200, '#e63946', 'VCC - 5V');
   drawWire(ctx, 230, 185, 300, 240, '#666', 'GND');
   drawWire(ctx, 230, 205, 300, 280, '#00e676', 'TX - D4');
   drawWire(ctx, 230, 225, 300, 310, '#ffd60a', 'RX - D3');
 
-  drawWire(ctx, 500, 200, 570, 165, '#e63946', '5V - VCC');
-  drawWire(ctx, 500, 240, 570, 185, '#666', 'GND');
-  drawWire(ctx, 500, 360, 570, 205, '#00b4d8', 'A4 - SDA');
-  drawWire(ctx, 500, 380, 570, 225, '#ff9800', 'A5 - SCL');
+  drawWire(ctx, 500, 200, 570, 125, '#e63946', '5V - VCC');
+  drawWire(ctx, 500, 240, 570, 145, '#666', 'GND');
+  drawWire(ctx, 500, 360, 570, 165, '#00b4d8', 'A4 - SDA');
+  drawWire(ctx, 500, 380, 570, 185, '#ff9800', 'A5 - SCL');
+
+  // SD SPI wires
+  drawWire(ctx, 500, 200, 570, 325, '#e63946', '5V - VCC');
+  drawWire(ctx, 500, 240, 570, 345, '#666', 'GND');
+  drawWire(ctx, 500, 310, 570, 365, '#00b4d8', 'D10 - CS');
+  drawWire(ctx, 500, 250, 570, 385, '#ff9800', 'D11-MOSI');
+  drawWire(ctx, 500, 180, 570, 405, '#00e676', 'D12-MISO');
+  drawWire(ctx, 500, 150, 570, 425, '#ffd60a', 'D13-SCK');
 
   ctx.fillStyle = '#7b8794';
   ctx.font = '12px sans-serif';
