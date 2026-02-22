@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arduino GPS Tracker with LCD Display</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Arduino GPS Tracker</h1>
+    <p class="subtitle">Interactive Simulator &amp; Project Reference</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="simulator">Simulator</button>
+    <button class="tab" data-tab="code">Arduino Code</button>
+    <button class="tab" data-tab="wiring">Wiring &amp; Components</button>
+  </nav>
+
+  <main>
+    <section id="simulator" class="tab-content active">
+      <div class="sim-layout">
+        <div class="sim-left">
+          <div class="arduino-board">
+            <div class="board-label">Arduino UNO</div>
+            <div class="components-row">
+              <div class="component gps-module">
+                <div class="component-label">NEO-6M GPS</div>
+                <div class="gps-indicator">
+                  <span class="led" id="gpsLed"></span>
+                  <span id="gpsStatus">Searching...</span>
+                </div>
+                <div class="gps-data">
+                  <div>Satellites: <span id="satCount">0</span></div>
+                  <div>HDOP: <span id="hdop">--</span></div>
+                </div>
+              </div>
+              <div class="component lcd-module">
+                <div class="component-label">16x2 LCD (I2C)</div>
+                <div class="lcd-display">
+                  <div class="lcd-screen">
+                    <div class="lcd-row" id="lcdRow1">Initializing...</div>
+                    <div class="lcd-row" id="lcdRow2">GPS Tracker v1.0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-controls">
+            <h3>Simulation Controls</h3>
+            <div class="control-group">
+              <label>Latitude:</label>
+              <input type="number" id="simLat" value="40.7128" step="0.0001" min="-90" max="90">
+            </div>
+            <div class="control-group">
+              <label>Longitude:</label>
+              <input type="number" id="simLng" value="-74.0060" step="0.0001" min="-180" max="180">
+            </div>
+            <div class="control-group">
+              <label>Speed (km/h):</label>
+              <input type="number" id="simSpeed" value="0" step="1" min="0" max="300">
+            </div>
+            <div class="control-group">
+              <label>Altitude (m):</label>
+              <input type="number" id="simAlt" value="10" step="1" min="-500" max="10000">
+            </div>
+            <div class="control-group">
+              <label>Satellites:</label>
+              <input type="range" id="simSats" value="0" min="0" max="12">
+              <span id="simSatsVal">0</span>
+            </div>
+            <div class="btn-row">
+              <button id="btnStart" class="btn btn-primary">Start GPS Fix</button>
+              <button id="btnRoute" class="btn btn-secondary">Simulate Route</button>
+              <button id="btnReset" class="btn btn-danger">Reset</button>
+            </div>
+            <div class="control-group">
+              <label>LCD Display Mode:</label>
+              <select id="displayMode">
+                <option value="latlon">Lat / Lon</option>
+                <option value="speed">Speed / Altitude</option>
+                <option value="sats">Satellites / HDOP</option>
+                <option value="time">Date / Time</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sim-right">
+          <div class="map-container">
+            <h3>GPS Position Map</h3>
+            <canvas id="mapCanvas" width="500" height="400"></canvas>
+            <div class="map-info">
+              <span id="mapCoords">40.7128, -74.0060</span>
+              <span id="mapZoom">Zoom: 12</span>
+            </div>
+          </div>
+          <div class="serial-monitor">
+            <h3>Serial Monitor (9600 baud)</h3>
+            <div class="serial-output" id="serialOutput"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="code" class="tab-content">
+      <div class="code-section">
+        <div class="code-header">
+          <h2>GPS_Tracker.ino</h2>
+          <button class="btn btn-primary" id="btnCopy">Copy Code</button>
+        </div>
+        <pre class="code-block"><code id="arduinoCode"></code></pre>
+      </div>
+
+      <div class="code-section">
+        <h2>Required Libraries</h2>
+        <div class="library-list">
+          <div class="library-item">
+            <h4>TinyGPSPlus</h4>
+            <p>Lightweight GPS parsing library. Install via Arduino Library Manager.</p>
+            <code>Sketch > Include Library > Manage Libraries > Search "TinyGPSPlus"</code>
+          </div>
+          <div class="library-item">
+            <h4>LiquidCrystal_I2C</h4>
+            <p>LCD display driver for I2C backpack modules.</p>
+            <code>Sketch > Include Library > Manage Libraries > Search "LiquidCrystal I2C"</code>
+          </div>
+          <div class="library-item">
+            <h4>SoftwareSerial</h4>
+            <p>Built-in Arduino library for serial communication on digital pins.</p>
+            <code>Included with Arduino IDE (no installation needed)</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="wiring" class="tab-content">
+      <div class="wiring-section">
+        <h2>Components Required</h2>
+        <div class="components-grid">
+          <div class="comp-card">
+            <div class="comp-icon">&#9881;</div>
+            <h4>Arduino UNO R3</h4>
+            <p>Main microcontroller board</p>
+          </div>
+          <div class="comp-card">
+            <div class="comp-icon">&#128225;</div>
+            <h4>NEO-6M GPS Module</h4>
+            <p>u-blox GPS receiver with antenna</p>
+          </div>
+          <div class="comp-card">
+            <div class="comp-icon">&#128187;</div>
+            <h4>16x2 LCD with I2C</h4>
+            <p>HD44780 LCD with PCF8574 I2C adapter</p>
+          </div>
+          <div class="comp-card">
+            <div class="comp-icon">&#128268;</div>
+            <h4>Jumper Wires</h4>
+            <p>Male-to-female dupont wires</p>
+          </div>
+          <div class="comp-card">
+            <div class="comp-icon">&#9889;</div>
+            <h4>Breadboard</h4>
+            <p>For prototyping connections</p>
+          </div>
+          <div class="comp-card">
+            <div class="comp-icon">&#128267;</div>
+            <h4>USB Cable</h4>
+            <p>Type-A to Type-B for programming</p>
+          </div>
+        </div>
+
+        <h2>Wiring Diagram</h2>
+        <div class="wiring-diagram">
+          <canvas id="wiringCanvas" width="800" height="500"></canvas>
+        </div>
+
+        <h2>Connection Table</h2>
+        <table class="wiring-table">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Pin</th>
+              <th>Arduino Pin</th>
+              <th>Wire Color</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GPS NEO-6M</td>
+              <td>VCC</td>
+              <td>5V</td>
+              <td class="wire-red">Red</td>
+            </tr>
+            <tr>
+              <td>GPS NEO-6M</td>
+              <td>GND</td>
+              <td>GND</td>
+              <td class="wire-black">Black</td>
+            </tr>
+            <tr>
+              <td>GPS NEO-6M</td>
+              <td>TX</td>
+              <td>D4 (RX)</td>
+              <td class="wire-green">Green</td>
+            </tr>
+            <tr>
+              <td>GPS NEO-6M</td>
+              <td>RX</td>
+              <td>D3 (TX)</td>
+              <td class="wire-yellow">Yellow</td>
+            </tr>
+            <tr>
+              <td>LCD I2C</td>
+              <td>VCC</td>
+              <td>5V</td>
+              <td class="wire-red">Red</td>
+            </tr>
+            <tr>
+              <td>LCD I2C</td>
+              <td>GND</td>
+              <td>GND</td>
+              <td class="wire-black">Black</td>
+            </tr>
+            <tr>
+              <td>LCD I2C</td>
+              <td>SDA</td>
+              <td>A4</td>
+              <td class="wire-blue">Blue</td>
+            </tr>
+            <tr>
+              <td>LCD I2C</td>
+              <td>SCL</td>
+              <td>A5</td>
+              <td class="wire-orange">Orange</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Setup Notes</h2>
+        <div class="notes-grid">
+          <div class="note-card">
+            <h4>GPS Module Tips</h4>
+            <ul>
+              <li>First fix can take 1-15 minutes outdoors</li>
+              <li>The antenna must have clear sky view</li>
+              <li>LED on module blinks when fix is acquired</li>
+              <li>Default baud rate is 9600</li>
+            </ul>
+          </div>
+          <div class="note-card">
+            <h4>LCD I2C Address</h4>
+            <ul>
+              <li>Common addresses: 0x27 or 0x3F</li>
+              <li>Run I2C scanner sketch if display is blank</li>
+              <li>Adjust contrast via potentiometer on back</li>
+              <li>Backlight can be toggled via jumper</li>
+            </ul>
+          </div>
+          <div class="note-card">
+            <h4>Power Considerations</h4>
+            <ul>
+              <li>GPS module draws ~50mA at 3.3-5V</li>
+              <li>LCD backlight draws ~20mA</li>
+              <li>USB power is sufficient for testing</li>
+              <li>Use external 7-12V for standalone use</li>
+            </ul>
+          </div>
+          <div class="note-card">
+            <h4>Troubleshooting</h4>
+            <ul>
+              <li>No GPS data? Check TX/RX connections</li>
+              <li>LCD blank? Check I2C address and contrast</li>
+              <li>Garbled data? Verify baud rate is 9600</li>
+              <li>No fix? Move outdoors with clear sky</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
