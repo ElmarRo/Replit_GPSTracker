@@ -12,10 +12,11 @@ An interactive web-based Arduino GPS Tracker simulator and project reference. Us
 ## Features
 - Interactive GPS simulator with LCD display emulation (green-on-dark, 16x2 characters)
 - GPS position map with trail visualization on canvas
+- SD card data logging simulation (CSV format)
 - Serial monitor output simulation
 - Route simulation with moving position
-- Complete Arduino sketch (TinyGPSPlus + LiquidCrystal_I2C + SoftwareSerial)
-- Canvas-drawn wiring diagram showing Arduino UNO, NEO-6M GPS, and 16x2 LCD I2C connections
+- Complete Arduino sketch (TinyGPSPlus + LiquidCrystal_I2C + SoftwareSerial + SD)
+- Canvas-drawn wiring diagram showing Arduino UNO, NEO-6M GPS, 16x2 LCD I2C, and SD Module connections
 - Component list and connection table
 
 ## Tech Stack

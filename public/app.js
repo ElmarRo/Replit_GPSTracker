@@ -2,12 +2,20 @@ const arduinoCode = `#include <TinyGPSPlus.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <SPI.h>
+#include <SD.h>
 
 // GPS Module connections
 // GPS TX -> Arduino D4
 // GPS RX -> Arduino D3
 static const int RXPin = 4, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
+
+// SD Card connections (SPI)
+// CS -> D10, MOSI -> D11, MISO -> D12, SCK -> D13
+const int chipSelect = 10;
+File dataFile;
+bool sdActive = false;
 
 TinyGPSPlus gps;
 SoftwareSerial gpsSerial(RXPin, TXPin);
@@ -20,17 +28,6 @@ int displayMode = 0;
 unsigned long lastModeSwitch = 0;
 const unsigned long MODE_INTERVAL = 3000; // 3 seconds per mode
 
-// Custom characters for LCD
-byte satIcon[8] = {
-  0b00000, 0b01010, 0b00100, 0b01110,
-  0b00100, 0b01010, 0b00000, 0b00000
-};
-
-byte arrowIcon[8] = {
-  0b00000, 0b00100, 0b01110, 0b10101,
-  0b00100, 0b00100, 0b00100, 0b00000
-};
-
 void setup() {
   Serial.begin(9600);
   gpsSerial.begin(GPSBaud);
@@ -38,20 +35,33 @@ void setup() {
   // Initialize LCD
   lcd.init();
   lcd.backlight();
-  lcd.createChar(0, satIcon);
-  lcd.createChar(1, arrowIcon);
-
-  // Startup message
   lcd.setCursor(0, 0);
-  lcd.print("GPS Tracker v1.0");
-  lcd.setCursor(0, 1);
-  lcd.print("Searching sats..");
+  lcd.print("GPS Tracker v1.1");
 
-  Serial.println(F("========================="));
-  Serial.println(F(" Arduino GPS Tracker"));
-  Serial.println(F(" with 16x2 LCD Display"));
-  Serial.println(F("========================="));
-  Serial.println();
+  // Initialize SD Card
+  Serial.print("Initializing SD...");
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Fail!");
+    lcd.setCursor(0, 1);
+    lcd.print("SD Init Failed! ");
+  } else {
+    Serial.println("OK!");
+    sdActive = true;
+    lcd.setCursor(0, 1);
+    lcd.print("SD Ready        ");
+    
+    // Create header if file is new
+    if (!SD.exists("gpslog.csv")) {
+      dataFile = SD.open("gpslog.csv", FILE_WRITE);
+      if (dataFile) {
+        dataFile.println("Date,Time,Lat,Lon,Speed,Alt,Sats");
+        dataFile.close();
+      }
+    }
+  }
+  
+  delay(2000);
+  lcd.clear();
 }
 
 void loop() {
@@ -60,15 +70,10 @@ void loop() {
     gps.encode(gpsSerial.read());
   }
 
-  // Auto-cycle display modes every 3 seconds
-  if (millis() - lastModeSwitch > MODE_INTERVAL) {
-    lastModeSwitch = millis();
-    displayMode = (displayMode + 1) % 4;
-  }
-
   // Update display based on GPS fix status
   if (gps.location.isValid()) {
     updateDisplay();
+    logData();
     printSerialData();
   } else {
     showSearching();
@@ -76,6 +81,26 @@ void loop() {
 
   delay(100);
 }
+
+void logData() {
+  static unsigned long lastLog = 0;
+  if (!sdActive || millis() - lastLog < 5000) return; // Log every 5s
+  lastLog = millis();
+
+  dataFile = SD.open("gpslog.csv", FILE_WRITE);
+  if (dataFile) {
+    dataFile.print(gps.date.value()); dataFile.print(",");
+    dataFile.print(gps.time.value()); dataFile.print(",");
+    dataFile.print(gps.location.lat(), 6); dataFile.print(",");
+    dataFile.print(gps.location.lng(), 6); dataFile.print(",");
+    dataFile.print(gps.speed.kmph()); dataFile.print(",");
+    dataFile.print(gps.altitude.meters()); dataFile.print(",");
+    dataFile.println(gps.satellites.value());
+    dataFile.close();
+    Serial.println("Logged to SD");
+  }
+}
+`;
 
 void updateDisplay() {
   lcd.clear();
@@ -816,6 +841,35 @@ function drawWire(ctx, x1, y1, x2, y2, color, label) {
   ctx.textAlign = 'center';
   ctx.fillText(label, lx, ly);
   ctx.textAlign = 'left';
+}
+
+function drawSDModule(ctx, x, y, w, h) {
+  ctx.fillStyle = '#1a1a1a';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('SD CARD MODULE', x + w / 2, y + 20);
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#222';
+  ctx.fillRect(x + 20, y + 30, w - 40, h - 50);
+  ctx.strokeStyle = '#444';
+  ctx.strokeRect(x + 20, y + 30, w - 40, h - 50);
+
+  const pins = ['VCC', 'GND', 'CS', 'MOSI', 'MISO', 'SCK'];
+  pins.forEach((pin, i) => {
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x - 5, y + 45 + i * 16, 10, 5);
+    ctx.fillStyle = '#ccc';
+    ctx.font = '8px monospace';
+    ctx.fillText(pin, x + 8, y + 50 + i * 16);
+  });
 }
 
 function roundRect(ctx, x, y, w, h, r) {
