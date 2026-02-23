@@ -15,8 +15,8 @@ An interactive web-based Arduino GPS Tracker simulator and project reference. Us
 - SD card data logging simulation (CSV format)
 - Serial monitor output simulation
 - Route simulation with moving position
-- Complete Arduino sketch (TinyGPSPlus + LiquidCrystal_I2C + SoftwareSerial + SD)
-- Canvas-drawn wiring diagram showing Arduino UNO, NEO-6M GPS, 16x2 LCD I2C, and SD Module connections
+- Complete Arduino sketch (TinyGPSPlus + LiquidCrystal_I2C + SoftwareSerial + SD + RTClib)
+- Canvas-drawn wiring diagram showing Arduino UNO, NEO-6M GPS, 16x2 LCD I2C, SD Module, and DS3231 RTC connections
 - Component list and connection table
 
 ## Tech Stack
