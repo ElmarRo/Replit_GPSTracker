@@ -110,17 +110,34 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initTabs() {
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = tab.getAttribute('data-tab');
+      console.log('Tab clicked:', targetId);
+
+      // Remove active class from all tabs and contents
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => {
+        c.classList.remove('active');
+        c.style.display = 'none';
+      });
+
+      // Add active class to clicked tab and its content
       tab.classList.add('active');
-      const contentId = tab.getAttribute('data-tab');
-      const content = document.getElementById(contentId);
-      if (content) {
-        content.classList.add('active');
+      const targetContent = document.getElementById(targetId);
+      if (targetContent) {
+        targetContent.classList.add('active');
+        targetContent.style.display = 'block';
+        console.log('Activated content:', targetId);
+      } else {
+        console.error('Content not found for ID:', targetId);
       }
-      if (contentId === 'wiring') {
+
+      if (targetId === 'wiring') {
         setTimeout(drawWiringDiagram, 100);
       }
     });
@@ -210,38 +227,46 @@ function startGPSFix() {
   setLCD('Searching GPS   ', 'Satellites..    ');
 
   let satBuild = 0;
-  const targetSats = parseInt(document.getElementById('simSats').value) || 8;
+  const simSatsInput = document.getElementById('simSats');
+  const targetSats = simSatsInput ? parseInt(simSatsInput.value) : 8;
 
   const fixInterval = setInterval(() => {
     satBuild++;
     const currentSats = Math.min(satBuild, targetSats);
-    const satCount = document.getElementById('satCount');
-    if (satCount) satCount.textContent = currentSats;
     
-    const simSats = document.getElementById('simSats');
-    if (simSats) simSats.value = currentSats;
+    const satCountLabel = document.getElementById('satCount');
+    if (satCountLabel) satCountLabel.textContent = currentSats;
     
-    const simSatsVal = document.getElementById('simSatsVal');
-    if (simSatsVal) simSatsVal.textContent = currentSats;
+    const simSatsRange = document.getElementById('simSats');
+    if (simSatsRange) simSatsRange.value = currentSats;
+    
+    const simSatsValLabel = document.getElementById('simSatsVal');
+    if (simSatsValLabel) simSatsValLabel.textContent = currentSats;
 
     let dots = '.'.repeat((satBuild % 5) + 1);
-    setLCD('Searching GPS   ', `Sats: ${currentSats}${dots}     `);
-    serialPrint(`Satellites found: ${currentSats}`);
+    setLCD('Searching GPS   ', "Sats: " + currentSats + dots + "     ");
+    serialPrint("Satellites found: " + currentSats);
 
     if (currentSats >= 3 && satBuild >= 4) {
       clearInterval(fixInterval);
       simState.hasFix = true;
       simState.sats = targetSats;
-      simState.lat = parseFloat(document.getElementById('simLat').value) || 40.7128;
-      simState.lng = parseFloat(document.getElementById('simLng').value) || -74.0060;
-      simState.speed = parseFloat(document.getElementById('simSpeed').value) || 0;
-      simState.alt = parseFloat(document.getElementById('simAlt').value) || 10;
+      
+      const latInput = document.getElementById('simLat');
+      const lngInput = document.getElementById('simLng');
+      const speedInput = document.getElementById('simSpeed');
+      const altInput = document.getElementById('simAlt');
+      
+      simState.lat = latInput ? parseFloat(latInput.value) : 40.7128;
+      simState.lng = lngInput ? parseFloat(lngInput.value) : -74.0060;
+      simState.speed = speedInput ? parseFloat(speedInput.value) : 0;
+      simState.alt = altInput ? parseFloat(altInput.value) : 10;
       simState.trail = [{ lat: simState.lat, lng: simState.lng }];
 
       if (led) led.className = 'led fixed';
       if (status) status.textContent = 'Fix acquired';
-      const hdop = document.getElementById('hdop');
-      if (hdop) hdop.textContent = '1.2';
+      const hdopLabel = document.getElementById('hdop');
+      if (hdopLabel) hdopLabel.textContent = '1.2';
 
       serialPrint('');
       serialPrint('*** GPS FIX ACQUIRED ***');
@@ -266,18 +291,21 @@ function simulateRoute() {
     serialPrint('ERROR: No GPS fix. Start GPS first.');
     return;
   }
+  
+  const btnRoute = document.getElementById('btnRoute');
   if (simState.routeRunning) {
     clearInterval(routeInterval);
     simState.routeRunning = false;
-    document.getElementById('btnRoute').textContent = 'Simulate Route';
+    if (btnRoute) btnRoute.textContent = 'Simulate Route';
     simState.speed = 0;
-    document.getElementById('simSpeed').value = 0;
+    const speedInput = document.getElementById('simSpeed');
+    if (speedInput) speedInput.value = 0;
     updateLCD();
     return;
   }
 
   simState.routeRunning = true;
-  document.getElementById('btnRoute').textContent = 'Stop Route';
+  if (btnRoute) btnRoute.textContent = 'Stop Route';
   serialPrint('Route simulation started');
 
   const baseLat = simState.lat;
@@ -292,10 +320,15 @@ function simulateRoute() {
     simState.speed = 25 + Math.sin(angle * 2) * 15;
     simState.alt = 10 + Math.sin(angle * 0.5) * 20;
 
-    document.getElementById('simLat').value = simState.lat.toFixed(4);
-    document.getElementById('simLng').value = simState.lng.toFixed(4);
-    document.getElementById('simSpeed').value = Math.round(simState.speed);
-    document.getElementById('simAlt').value = Math.round(simState.alt);
+    const latInput = document.getElementById('simLat');
+    const lngInput = document.getElementById('simLng');
+    const speedInput = document.getElementById('simSpeed');
+    const altInput = document.getElementById('simAlt');
+
+    if (latInput) latInput.value = simState.lat.toFixed(4);
+    if (lngInput) lngInput.value = simState.lng.toFixed(4);
+    if (speedInput) speedInput.value = Math.round(simState.speed);
+    if (altInput) altInput.value = Math.round(simState.alt);
 
     simState.trail.push({ lat: simState.lat, lng: simState.lng });
     if (simState.trail.length > 200) simState.trail.shift();
@@ -308,6 +341,8 @@ function simulateRoute() {
 function resetSim() {
   clearInterval(simInterval);
   clearInterval(routeInterval);
+  
+  const displayModeSel = document.getElementById('displayMode');
   simState = {
     running: false,
     routeRunning: false,
@@ -317,26 +352,39 @@ function resetSim() {
     alt: 10,
     sats: 0,
     hasFix: false,
-    displayMode: document.getElementById('displayMode').value,
+    displayMode: displayModeSel ? displayModeSel.value : 'latlon',
     routeIndex: 0,
     trail: []
   };
 
-  document.getElementById('gpsLed').className = 'led';
-  document.getElementById('gpsStatus').textContent = 'Searching...';
-  document.getElementById('satCount').textContent = '0';
-  document.getElementById('hdop').textContent = '--';
-  document.getElementById('simSats').value = 0;
-  document.getElementById('simSatsVal').textContent = '0';
-  document.getElementById('simLat').value = '40.7128';
-  document.getElementById('simLng').value = '-74.0060';
-  document.getElementById('simSpeed').value = '0';
-  document.getElementById('simAlt').value = '10';
-  document.getElementById('btnRoute').textContent = 'Simulate Route';
+  const led = document.getElementById('gpsLed');
+  const status = document.getElementById('gpsStatus');
+  const satCount = document.getElementById('satCount');
+  const hdop = document.getElementById('hdop');
+  const simSats = document.getElementById('simSats');
+  const simSatsVal = document.getElementById('simSatsVal');
+  const latInput = document.getElementById('simLat');
+  const lngInput = document.getElementById('simLng');
+  const speedInput = document.getElementById('simSpeed');
+  const altInput = document.getElementById('simAlt');
+  const btnRoute = document.getElementById('btnRoute');
+
+  if (led) led.className = 'led';
+  if (status) status.textContent = 'Searching...';
+  if (satCount) satCount.textContent = '0';
+  if (hdop) hdop.textContent = '--';
+  if (simSats) simSats.value = 0;
+  if (simSatsVal) simSatsVal.textContent = '0';
+  if (latInput) latInput.value = '40.7128';
+  if (lngInput) lngInput.value = '-74.0060';
+  if (speedInput) speedInput.value = '0';
+  if (altInput) altInput.value = '10';
+  if (btnRoute) btnRoute.textContent = 'Simulate Route';
 
   setLCD('Initializing...', 'GPS Tracker v1.0');
 
-  document.getElementById('serialOutput').textContent = '';
+  const serialOutput = document.getElementById('serialOutput');
+  if (serialOutput) serialOutput.textContent = '';
   serialPrint('--- System Reset ---');
   serialPrint('Waiting for GPS fix...');
 
@@ -432,8 +480,8 @@ function drawMap() {
   ctx.arc(cx, cy, 30, 0, Math.PI * 2);
   ctx.stroke();
 
-  const mapCoords = document.getElementById('mapCoords');
-  if (mapCoords) mapCoords.textContent = simState.lat.toFixed(4) + ", " + simState.lng.toFixed(4);
+  const mapCoordsLabel = document.getElementById('mapCoords');
+  if (mapCoordsLabel) mapCoordsLabel.textContent = simState.lat.toFixed(4) + ", " + simState.lng.toFixed(4);
 }
 
 function updateMap() {
@@ -521,8 +569,8 @@ function updateMap() {
   ctx.fillText(simState.speed.toFixed(1) + " km/h", 10, h - 15);
   ctx.fillText(simState.sats + " sats", w - 60, 20);
 
-  const mapCoords = document.getElementById('mapCoords');
-  if (mapCoords) mapCoords.textContent = simState.lat.toFixed(4) + ", " + simState.lng.toFixed(4);
+  const mapCoordsLabel = document.getElementById('mapCoords');
+  if (mapCoordsLabel) mapCoordsLabel.textContent = simState.lat.toFixed(4) + ", " + simState.lng.toFixed(4);
 }
 
 function drawGrid(ctx, w, h) {
@@ -576,12 +624,12 @@ function highlightArduino(code) {
 
   const keywords = ['void', 'int', 'float', 'double', 'char', 'byte', 'static', 'const', 'unsigned', 'long', 'if', 'else', 'switch', 'case', 'break', 'return', 'for', 'while', 'true', 'false'];
   keywords.forEach(kw => {
-    const re = new RegExp("\\b" + kw + "\\b", 'g');
+    const re = new RegExp("\\\\b" + kw + "\\\\b", 'g');
     html = html.replace(re, '<span class="kw">' + kw + '</span>');
   });
 
-  html = html.replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
-  html = html.replace(/(F?\(&quot;[^&]*&quot;\))/g, '<span class="str">$1</span>');
+  html = html.replace(/\\b(\\d+\\.?\\d*)\\b/g, '<span class="num">$1</span>');
+  html = html.replace(/(F?\\(&quot;[^&]*&quot;\\))/g, '<span class="str">$1</span>');
   html = html.replace(/(&quot;[^&]*&quot;)/g, '<span class="str">$1</span>');
 
   return html;

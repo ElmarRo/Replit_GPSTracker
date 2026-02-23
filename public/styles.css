@@ -69,11 +69,11 @@ main {
 }
 
 .tab-content {
-  display: none;
+  display: none !important;
 }
 
 .tab-content.active {
-  display: block;
+  display: block !important;
 }
 
 .sim-layout {
