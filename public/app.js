@@ -115,8 +115,12 @@ function initTabs() {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       tab.classList.add('active');
-      document.getElementById(tab.dataset.tab).classList.add('active');
-      if (tab.dataset.tab === 'wiring') {
+      const contentId = tab.getAttribute('data-tab');
+      const content = document.getElementById(contentId);
+      if (content) {
+        content.classList.add('active');
+      }
+      if (contentId === 'wiring') {
         setTimeout(drawWiringDiagram, 100);
       }
     });
@@ -143,29 +147,43 @@ let routeInterval = null;
 function initSimulator() {
   const satsSlider = document.getElementById('simSats');
   const satsVal = document.getElementById('simSatsVal');
-  satsSlider.addEventListener('input', () => {
-    satsVal.textContent = satsSlider.value;
-  });
+  if (satsSlider && satsVal) {
+    satsSlider.addEventListener('input', () => {
+      satsVal.textContent = satsSlider.value;
+    });
+  }
 
-  document.getElementById('btnStart').addEventListener('click', startGPSFix);
-  document.getElementById('btnRoute').addEventListener('click', simulateRoute);
-  document.getElementById('btnReset').addEventListener('click', resetSim);
-  document.getElementById('displayMode').addEventListener('change', (e) => {
-    simState.displayMode = e.target.value;
-    if (simState.hasFix) updateLCD();
-  });
+  const btnStart = document.getElementById('btnStart');
+  if (btnStart) btnStart.addEventListener('click', startGPSFix);
+  
+  const btnRoute = document.getElementById('btnRoute');
+  if (btnRoute) btnRoute.addEventListener('click', simulateRoute);
+  
+  const btnReset = document.getElementById('btnReset');
+  if (btnReset) btnReset.addEventListener('click', resetSim);
+  
+  const displayModeSel = document.getElementById('displayMode');
+  if (displayModeSel) {
+    displayModeSel.addEventListener('change', (e) => {
+      simState.displayMode = e.target.value;
+      if (simState.hasFix) updateLCD();
+    });
+  }
 
   ['simLat', 'simLng', 'simSpeed', 'simAlt'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      if (simState.hasFix) {
-        simState.lat = parseFloat(document.getElementById('simLat').value) || 0;
-        simState.lng = parseFloat(document.getElementById('simLng').value) || 0;
-        simState.speed = parseFloat(document.getElementById('simSpeed').value) || 0;
-        simState.alt = parseFloat(document.getElementById('simAlt').value) || 0;
-        updateLCD();
-        updateMap();
-      }
-    });
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        if (simState.hasFix) {
+          simState.lat = parseFloat(document.getElementById('simLat').value) || 0;
+          simState.lng = parseFloat(document.getElementById('simLng').value) || 0;
+          simState.speed = parseFloat(document.getElementById('simSpeed').value) || 0;
+          simState.alt = parseFloat(document.getElementById('simAlt').value) || 0;
+          updateLCD();
+          updateMap();
+        }
+      });
+    }
   });
 
   drawMap();
@@ -183,8 +201,8 @@ function startGPSFix() {
 
   const led = document.getElementById('gpsLed');
   const status = document.getElementById('gpsStatus');
-  led.className = 'led searching';
-  status.textContent = 'Acquiring...';
+  if (led) led.className = 'led searching';
+  if (status) status.textContent = 'Acquiring...';
 
   serialPrint('GPS module powered on');
   serialPrint('Searching for satellites...');
@@ -197,9 +215,14 @@ function startGPSFix() {
   const fixInterval = setInterval(() => {
     satBuild++;
     const currentSats = Math.min(satBuild, targetSats);
-    document.getElementById('satCount').textContent = currentSats;
-    document.getElementById('simSats').value = currentSats;
-    document.getElementById('simSatsVal').textContent = currentSats;
+    const satCount = document.getElementById('satCount');
+    if (satCount) satCount.textContent = currentSats;
+    
+    const simSats = document.getElementById('simSats');
+    if (simSats) simSats.value = currentSats;
+    
+    const simSatsVal = document.getElementById('simSatsVal');
+    if (simSatsVal) simSatsVal.textContent = currentSats;
 
     let dots = '.'.repeat((satBuild % 5) + 1);
     setLCD('Searching GPS   ', `Sats: ${currentSats}${dots}     `);
@@ -215,9 +238,10 @@ function startGPSFix() {
       simState.alt = parseFloat(document.getElementById('simAlt').value) || 10;
       simState.trail = [{ lat: simState.lat, lng: simState.lng }];
 
-      led.className = 'led fixed';
-      status.textContent = 'Fix acquired';
-      document.getElementById('hdop').textContent = '1.2';
+      if (led) led.className = 'led fixed';
+      if (status) status.textContent = 'Fix acquired';
+      const hdop = document.getElementById('hdop');
+      if (hdop) hdop.textContent = '1.2';
 
       serialPrint('');
       serialPrint('*** GPS FIX ACQUIRED ***');
@@ -331,21 +355,21 @@ function updateLCD() {
 
   switch (mode) {
     case 'latlon':
-      row1 = \`Lat: \${lat.toFixed(4)}\`;
-      row2 = \`Lon:\${lng.toFixed(4)}\`;
+      row1 = "Lat: " + lat.toFixed(4);
+      row2 = "Lon:" + lng.toFixed(4);
       break;
     case 'speed':
-      row1 = \`Spd:\${speed.toFixed(1)} km/h\`;
-      row2 = \`Alt:\${alt.toFixed(1)} m\`;
+      row1 = "Spd:" + speed.toFixed(1) + " km/h";
+      row2 = "Alt:" + alt.toFixed(1) + " m";
       break;
     case 'sats':
-      row1 = \`* Sats: \${sats}\`;
-      row2 = \`HDOP: 1.2\`;
+      row1 = "* Sats: " + sats;
+      row2 = "HDOP: 1.2";
       break;
     case 'time':
       const now = new Date();
-      row1 = \`Date: \${String(now.getMonth()+1).padStart(2,'0')}/\${String(now.getDate()).padStart(2,'0')}/\${now.getFullYear()}\`;
-      row2 = \`Time: \${String(now.getHours()).padStart(2,'0')}:\${String(now.getMinutes()).padStart(2,'0')}:\${String(now.getSeconds()).padStart(2,'0')}\`;
+      row1 = "Date: " + String(now.getMonth()+1).padStart(2,'0') + "/" + String(now.getDate()).padStart(2,'0') + "/" + now.getFullYear();
+      row2 = "Time: " + String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0') + ":" + String(now.getSeconds()).padStart(2,'0');
       break;
   }
 
@@ -357,27 +381,32 @@ function padLCD(str) {
 }
 
 function setLCD(row1, row2) {
-  document.getElementById('lcdRow1').textContent = row1;
-  document.getElementById('lcdRow2').textContent = row2;
+  const r1 = document.getElementById('lcdRow1');
+  const r2 = document.getElementById('lcdRow2');
+  if (r1) r1.textContent = row1;
+  if (r2) r2.textContent = row2;
 }
 
 function printSerialData() {
   if (!simState.hasFix) return;
-  serialPrint(\`Lat: \${simState.lat.toFixed(6)}  Lon: \${simState.lng.toFixed(6)}\`);
-  serialPrint(\`Speed: \${simState.speed.toFixed(1)} km/h  Alt: \${simState.alt.toFixed(1)} m\`);
-  serialPrint(\`Satellites: \${simState.sats}  HDOP: 1.2\`);
+  serialPrint("Lat: " + simState.lat.toFixed(6) + "  Lon: " + simState.lng.toFixed(6));
+  serialPrint("Speed: " + simState.speed.toFixed(1) + " km/h  Alt: " + simState.alt.toFixed(1) + " m");
+  serialPrint("Satellites: " + simState.sats + "  HDOP: 1.2");
   serialPrint('-------------------------');
 }
 
 function serialPrint(text) {
   const output = document.getElementById('serialOutput');
-  const timestamp = new Date().toLocaleTimeString();
-  output.textContent += \`[\${timestamp}] \${text}\\n\`;
-  output.scrollTop = output.scrollHeight;
+  if (output) {
+    const timestamp = new Date().toLocaleTimeString();
+    output.textContent += "[" + timestamp + "] " + text + "\n";
+    output.scrollTop = output.scrollHeight;
+  }
 }
 
 function drawMap() {
   const canvas = document.getElementById('mapCanvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
@@ -403,11 +432,13 @@ function drawMap() {
   ctx.arc(cx, cy, 30, 0, Math.PI * 2);
   ctx.stroke();
 
-  document.getElementById('mapCoords').textContent = \`\${simState.lat.toFixed(4)}, \${simState.lng.toFixed(4)}\`;
+  const mapCoords = document.getElementById('mapCoords');
+  if (mapCoords) mapCoords.textContent = simState.lat.toFixed(4) + ", " + simState.lng.toFixed(4);
 }
 
 function updateMap() {
   const canvas = document.getElementById('mapCanvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
@@ -443,7 +474,7 @@ function updateMap() {
       const alpha = (i / simState.trail.length) * 0.5;
       ctx.beginPath();
       ctx.arc(px, py, 2, 0, Math.PI * 2);
-      ctx.fillStyle = \`rgba(0, 180, 216, \${alpha})\`;
+      ctx.fillStyle = "rgba(0, 180, 216, " + alpha + ")";
       ctx.fill();
     }
   }
@@ -485,12 +516,13 @@ function updateMap() {
 
   ctx.fillStyle = '#7b8794';
   ctx.font = '11px monospace';
-  ctx.fillText(\`\${simState.lat.toFixed(6)}N\`, 10, 20);
-  ctx.fillText(\`\${Math.abs(simState.lng).toFixed(6)}\${simState.lng < 0 ? 'W' : 'E'}\`, 10, 35);
-  ctx.fillText(\`\${simState.speed.toFixed(1)} km/h\`, 10, h - 15);
-  ctx.fillText(\`\${simState.sats} sats\`, w - 60, 20);
+  ctx.fillText(simState.lat.toFixed(6) + "N", 10, 20);
+  ctx.fillText(Math.abs(simState.lng).toFixed(6) + (simState.lng < 0 ? 'W' : 'E'), 10, 35);
+  ctx.fillText(simState.speed.toFixed(1) + " km/h", 10, h - 15);
+  ctx.fillText(simState.sats + " sats", w - 60, 20);
 
-  document.getElementById('mapCoords').textContent = \`\${simState.lat.toFixed(4)}, \${simState.lng.toFixed(4)}\`;
+  const mapCoords = document.getElementById('mapCoords');
+  if (mapCoords) mapCoords.textContent = simState.lat.toFixed(4) + ", " + simState.lng.toFixed(4);
 }
 
 function drawGrid(ctx, w, h) {
@@ -523,31 +555,33 @@ function drawGrid(ctx, w, h) {
 
 function initCodeViewer() {
   const codeEl = document.getElementById('arduinoCode');
-  codeEl.innerHTML = highlightArduino(arduinoCode);
+  if (codeEl) codeEl.innerHTML = highlightArduino(arduinoCode);
 
-  document.getElementById('btnCopy').addEventListener('click', () => {
-    navigator.clipboard.writeText(arduinoCode).then(() => {
-      const btn = document.getElementById('btnCopy');
-      btn.textContent = 'Copied!';
-      setTimeout(() => btn.textContent = 'Copy Code', 2000);
+  const btnCopy = document.getElementById('btnCopy');
+  if (btnCopy) {
+    btnCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(arduinoCode).then(() => {
+        btnCopy.textContent = 'Copied!';
+        setTimeout(() => btnCopy.textContent = 'Copy Code', 2000);
+      });
     });
-  });
+  }
 }
 
 function highlightArduino(code) {
   let html = escapeHtml(code);
 
-  html = html.replace(/(\\/\/.*)/g, '<span class="cmt">$1</span>');
-  html = html.replace(/(#include\\s*&lt;[^&]*&gt;)/g, '<span class="pp">$1</span>');
+  html = html.replace(/(\/\/.*)/g, '<span class="cmt">$1</span>');
+  html = html.replace(/(#include\s*&lt;[^&]*&gt;)/g, '<span class="pp">$1</span>');
 
   const keywords = ['void', 'int', 'float', 'double', 'char', 'byte', 'static', 'const', 'unsigned', 'long', 'if', 'else', 'switch', 'case', 'break', 'return', 'for', 'while', 'true', 'false'];
   keywords.forEach(kw => {
-    const re = new RegExp(\`\\\\b(\${kw})\\\\b\`, 'g');
-    html = html.replace(re, '<span class="kw">$1</span>');
+    const re = new RegExp("\\b" + kw + "\\b", 'g');
+    html = html.replace(re, '<span class="kw">' + kw + '</span>');
   });
 
-  html = html.replace(/\\b(\\d+\\.?\\d*)\\b/g, '<span class="num">$1</span>');
-  html = html.replace(/(F?\\(&quot;[^&]*&quot;\\))/g, '<span class="str">$1</span>');
+  html = html.replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
+  html = html.replace(/(F?\(&quot;[^&]*&quot;\))/g, '<span class="str">$1</span>');
   html = html.replace(/(&quot;[^&]*&quot;)/g, '<span class="str">$1</span>');
 
   return html;
