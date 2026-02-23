@@ -102,99 +102,6 @@ void logData() {
 }
 `;
 
-void updateDisplay() {
-  lcd.clear();
-
-  switch (displayMode) {
-    case 0: // Latitude and Longitude
-      lcd.setCursor(0, 0);
-      lcd.print("Lat:");
-      lcd.print(gps.location.lat(), 4);
-      lcd.setCursor(0, 1);
-      lcd.print("Lon:");
-      lcd.print(gps.location.lng(), 4);
-      break;
-
-    case 1: // Speed and Altitude
-      lcd.setCursor(0, 0);
-      lcd.print("Spd:");
-      lcd.print(gps.speed.kmph(), 1);
-      lcd.print(" km/h");
-      lcd.setCursor(0, 1);
-      lcd.print("Alt:");
-      lcd.print(gps.altitude.meters(), 1);
-      lcd.print(" m");
-      break;
-
-    case 2: // Satellites and HDOP
-      lcd.setCursor(0, 0);
-      lcd.write(byte(0)); // satellite icon
-      lcd.print(" Sats: ");
-      lcd.print(gps.satellites.value());
-      lcd.setCursor(0, 1);
-      lcd.print("HDOP: ");
-      lcd.print(gps.hdop.hdop(), 1);
-      break;
-
-    case 3: // Date and Time (UTC)
-      lcd.setCursor(0, 0);
-      if (gps.date.isValid()) {
-        char dateBuf[17];
-        sprintf(dateBuf, "Date: %02d/%02d/%04d",
-          gps.date.month(),
-          gps.date.day(),
-          gps.date.year());
-        lcd.print(dateBuf);
-      } else {
-        lcd.print("Date: --/--/----");
-      }
-      lcd.setCursor(0, 1);
-      if (gps.time.isValid()) {
-        char timeBuf[17];
-        sprintf(timeBuf, "Time: %02d:%02d:%02d",
-          gps.time.hour(),
-          gps.time.minute(),
-          gps.time.second());
-        lcd.print(timeBuf);
-      } else {
-        lcd.print("Time: --:--:--");
-      }
-      break;
-  }
-}
-
-void showSearching() {
-  static int dots = 0;
-  lcd.setCursor(0, 0);
-  lcd.print("Searching GPS   ");
-  lcd.setCursor(0, 1);
-  lcd.print("Satellites");
-  for (int i = 0; i < dots; i++) lcd.print(".");
-  for (int i = dots; i < 5; i++) lcd.print(" ");
-  dots = (dots + 1) % 6;
-}
-
-void printSerialData() {
-  static unsigned long lastPrint = 0;
-  if (millis() - lastPrint < 2000) return;
-  lastPrint = millis();
-
-  Serial.print(F("Lat: "));
-  Serial.print(gps.location.lat(), 6);
-  Serial.print(F("  Lon: "));
-  Serial.println(gps.location.lng(), 6);
-  Serial.print(F("Speed: "));
-  Serial.print(gps.speed.kmph());
-  Serial.print(F(" km/h  Alt: "));
-  Serial.print(gps.altitude.meters());
-  Serial.println(F(" m"));
-  Serial.print(F("Satellites: "));
-  Serial.print(gps.satellites.value());
-  Serial.print(F("  HDOP: "));
-  Serial.println(gps.hdop.hdop());
-  Serial.println(F("-------------------------"));
-}`;
-
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initSimulator();
@@ -315,10 +222,10 @@ function startGPSFix() {
       serialPrint('');
       serialPrint('*** GPS FIX ACQUIRED ***');
       serialPrint('-------------------------');
+      serialPrint("SD card initialized. Logging to gpslog.csv");
 
       updateLCD();
       updateMap();
-      serialPrint("SD card initialized. Logging to gpslog.csv");
 
       simInterval = setInterval(() => {
         printSerialData();
@@ -424,21 +331,21 @@ function updateLCD() {
 
   switch (mode) {
     case 'latlon':
-      row1 = `Lat: ${lat.toFixed(4)}`;
-      row2 = `Lon:${lng.toFixed(4)}`;
+      row1 = \`Lat: \${lat.toFixed(4)}\`;
+      row2 = \`Lon:\${lng.toFixed(4)}\`;
       break;
     case 'speed':
-      row1 = `Spd:${speed.toFixed(1)} km/h`;
-      row2 = `Alt:${alt.toFixed(1)} m`;
+      row1 = \`Spd:\${speed.toFixed(1)} km/h\`;
+      row2 = \`Alt:\${alt.toFixed(1)} m\`;
       break;
     case 'sats':
-      row1 = `* Sats: ${sats}`;
-      row2 = `HDOP: 1.2`;
+      row1 = \`* Sats: \${sats}\`;
+      row2 = \`HDOP: 1.2\`;
       break;
     case 'time':
       const now = new Date();
-      row1 = `Date: ${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}/${now.getFullYear()}`;
-      row2 = `Time: ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      row1 = \`Date: \${String(now.getMonth()+1).padStart(2,'0')}/\${String(now.getDate()).padStart(2,'0')}/\${now.getFullYear()}\`;
+      row2 = \`Time: \${String(now.getHours()).padStart(2,'0')}:\${String(now.getMinutes()).padStart(2,'0')}:\${String(now.getSeconds()).padStart(2,'0')}\`;
       break;
   }
 
@@ -456,16 +363,16 @@ function setLCD(row1, row2) {
 
 function printSerialData() {
   if (!simState.hasFix) return;
-  serialPrint(`Lat: ${simState.lat.toFixed(6)}  Lon: ${simState.lng.toFixed(6)}`);
-  serialPrint(`Speed: ${simState.speed.toFixed(1)} km/h  Alt: ${simState.alt.toFixed(1)} m`);
-  serialPrint(`Satellites: ${simState.sats}  HDOP: 1.2`);
+  serialPrint(\`Lat: \${simState.lat.toFixed(6)}  Lon: \${simState.lng.toFixed(6)}\`);
+  serialPrint(\`Speed: \${simState.speed.toFixed(1)} km/h  Alt: \${simState.alt.toFixed(1)} m\`);
+  serialPrint(\`Satellites: \${simState.sats}  HDOP: 1.2\`);
   serialPrint('-------------------------');
 }
 
 function serialPrint(text) {
   const output = document.getElementById('serialOutput');
   const timestamp = new Date().toLocaleTimeString();
-  output.textContent += `[${timestamp}] ${text}\n`;
+  output.textContent += \`[\${timestamp}] \${text}\\n\`;
   output.scrollTop = output.scrollHeight;
 }
 
@@ -496,7 +403,7 @@ function drawMap() {
   ctx.arc(cx, cy, 30, 0, Math.PI * 2);
   ctx.stroke();
 
-  document.getElementById('mapCoords').textContent = `${simState.lat.toFixed(4)}, ${simState.lng.toFixed(4)}`;
+  document.getElementById('mapCoords').textContent = \`\${simState.lat.toFixed(4)}, \${simState.lng.toFixed(4)}\`;
 }
 
 function updateMap() {
@@ -536,7 +443,7 @@ function updateMap() {
       const alpha = (i / simState.trail.length) * 0.5;
       ctx.beginPath();
       ctx.arc(px, py, 2, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0, 180, 216, ${alpha})`;
+      ctx.fillStyle = \`rgba(0, 180, 216, \${alpha})\`;
       ctx.fill();
     }
   }
@@ -578,12 +485,12 @@ function updateMap() {
 
   ctx.fillStyle = '#7b8794';
   ctx.font = '11px monospace';
-  ctx.fillText(`${simState.lat.toFixed(6)}N`, 10, 20);
-  ctx.fillText(`${Math.abs(simState.lng).toFixed(6)}${simState.lng < 0 ? 'W' : 'E'}`, 10, 35);
-  ctx.fillText(`${simState.speed.toFixed(1)} km/h`, 10, h - 15);
-  ctx.fillText(`${simState.sats} sats`, w - 60, 20);
+  ctx.fillText(\`\${simState.lat.toFixed(6)}N\`, 10, 20);
+  ctx.fillText(\`\${Math.abs(simState.lng).toFixed(6)}\${simState.lng < 0 ? 'W' : 'E'}\`, 10, 35);
+  ctx.fillText(\`\${simState.speed.toFixed(1)} km/h\`, 10, h - 15);
+  ctx.fillText(\`\${simState.sats} sats\`, w - 60, 20);
 
-  document.getElementById('mapCoords').textContent = `${simState.lat.toFixed(4)}, ${simState.lng.toFixed(4)}`;
+  document.getElementById('mapCoords').textContent = \`\${simState.lat.toFixed(4)}, \${simState.lng.toFixed(4)}\`;
 }
 
 function drawGrid(ctx, w, h) {
@@ -630,17 +537,17 @@ function initCodeViewer() {
 function highlightArduino(code) {
   let html = escapeHtml(code);
 
-  html = html.replace(/(\/\/.*)/g, '<span class="cmt">$1</span>');
-  html = html.replace(/(#include\s*&lt;[^&]*&gt;)/g, '<span class="pp">$1</span>');
+  html = html.replace(/(\\/\/.*)/g, '<span class="cmt">$1</span>');
+  html = html.replace(/(#include\\s*&lt;[^&]*&gt;)/g, '<span class="pp">$1</span>');
 
   const keywords = ['void', 'int', 'float', 'double', 'char', 'byte', 'static', 'const', 'unsigned', 'long', 'if', 'else', 'switch', 'case', 'break', 'return', 'for', 'while', 'true', 'false'];
   keywords.forEach(kw => {
-    const re = new RegExp(`\\b(${kw})\\b`, 'g');
+    const re = new RegExp(\`\\\\b(\${kw})\\\\b\`, 'g');
     html = html.replace(re, '<span class="kw">$1</span>');
   });
 
-  html = html.replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
-  html = html.replace(/(F?\(&quot;[^&]*&quot;\))/g, '<span class="str">$1</span>');
+  html = html.replace(/\\b(\\d+\\.?\\d*)\\b/g, '<span class="num">$1</span>');
+  html = html.replace(/(F?\\(&quot;[^&]*&quot;\\))/g, '<span class="str">$1</span>');
   html = html.replace(/(&quot;[^&]*&quot;)/g, '<span class="str">$1</span>');
 
   return html;
@@ -787,7 +694,6 @@ function drawGPSModule(ctx, x, y, w, h) {
 
   const gpsPins = ['VCC', 'GND', 'TX', 'RX'];
   gpsPins.forEach((pin, i) => {
-    const py = y + 105 + i * 0;
     const px = x + w - 5;
     ctx.fillStyle = '#ffd700';
     ctx.fillRect(px, y + 45 + i * 20, 10, 6);
@@ -835,27 +741,6 @@ function drawLCDModule(ctx, x, y, w, h) {
   });
 }
 
-function drawWire(ctx, x1, y1, x2, y2, color, label) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  const midX = (x1 + x2) / 2;
-  ctx.bezierCurveTo(midX, y1, midX, y2, x2, y2);
-  ctx.stroke();
-
-  const lx = (x1 + x2) / 2;
-  const ly = (y1 + y2) / 2 - 8;
-  ctx.fillStyle = '#0d1a2a';
-  ctx.font = '9px sans-serif';
-  const tw = ctx.measureText(label).width;
-  ctx.fillRect(lx - tw / 2 - 3, ly - 8, tw + 6, 12);
-  ctx.fillStyle = color;
-  ctx.textAlign = 'center';
-  ctx.fillText(label, lx, ly);
-  ctx.textAlign = 'left';
-}
-
 function drawSDModule(ctx, x, y, w, h) {
   ctx.fillStyle = '#1a1a1a';
   ctx.strokeStyle = '#333';
@@ -883,6 +768,27 @@ function drawSDModule(ctx, x, y, w, h) {
     ctx.font = '8px monospace';
     ctx.fillText(pin, x + 8, y + 50 + i * 16);
   });
+}
+
+function drawWire(ctx, x1, y1, x2, y2, color, label) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  const midX = (x1 + x2) / 2;
+  ctx.bezierCurveTo(midX, y1, midX, y2, x2, y2);
+  ctx.stroke();
+
+  const lx = (x1 + x2) / 2;
+  const ly = (y1 + y2) / 2 - 8;
+  ctx.fillStyle = '#0d1a2a';
+  ctx.font = '9px sans-serif';
+  const tw = ctx.measureText(label).width;
+  ctx.fillRect(lx - tw / 2 - 3, ly - 8, tw + 6, 12);
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, lx, ly);
+  ctx.textAlign = 'left';
 }
 
 function roundRect(ctx, x, y, w, h, r) {
