@@ -193,9 +193,10 @@
         </div>
 
         <h2>Wiring Diagram</h2>
-        <div class="wiring-diagram">
-          <canvas id="wiringCanvas" width="800" height="500" style="display:block; background:#0d1a2a; border:1px solid #333;"></canvas>
+        <div class="wiring-diagram" style="min-height: 500px; background: #0d1a2a; display: flex; align-items: center; justify-content: center;">
+          <canvas id="wiringCanvas" width="800" height="500" style="max-width: 100%; height: auto; border: 1px solid #333;"></canvas>
         </div>
+        <button class="btn btn-secondary" onclick="if(window.drawWiringNow) window.drawWiringNow()" style="margin: 10px auto; display: block;">Refresh Diagram</button>
 
         <h2>Connection Table</h2>
         <table class="wiring-table">

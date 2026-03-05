@@ -433,27 +433,33 @@ function escapeHtml(text) {
 function initWiringDiagram() {
   const canvas = document.getElementById('wiringCanvas');
   if (canvas) {
-    // Force set dimensions in style and attribute
     canvas.width = 800;
     canvas.height = 500;
-    canvas.style.width = '100%';
-    canvas.style.height = 'auto';
-    canvas.style.display = 'block';
-    canvas.style.visibility = 'visible';
-    canvas.style.opacity = '1';
   }
   
-  // Initial draw attempt
-  setTimeout(drawWiringDiagram, 100);
-  setTimeout(drawWiringDiagram, 500);
-  setTimeout(drawWiringDiagram, 1000);
+  // Create an intersection observer to draw when it becomes visible
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        console.log('Canvas visible, drawing...');
+        drawWiringDiagram();
+      }
+    });
+  }, { threshold: 0.1 });
+
+  if (canvas) observer.observe(canvas);
   
-  // Also draw when the window is resized
-  window.addEventListener('resize', () => {
-    if (document.getElementById('wiring').classList.contains('active')) {
-      drawWiringDiagram();
-    }
+  // Also draw on tab clicks and delays
+  ['click', 'touchstart'].forEach(evt => {
+    document.querySelector('[data-tab="wiring"]')?.addEventListener(evt, () => {
+      setTimeout(drawWiringDiagram, 10);
+      setTimeout(drawWiringDiagram, 300);
+    });
   });
+
+  // Global backup
+  window.drawWiringNow = drawWiringDiagram;
+  setTimeout(drawWiringDiagram, 500);
 }
 
 function drawWiringDiagram() {
