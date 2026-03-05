@@ -183,10 +183,16 @@ function initSimulator() {
     if (el) {
       el.addEventListener('input', () => {
         if (simState.hasFix) {
-          simState.lat = parseFloat(document.getElementById('simLat').value) || 0;
-          simState.lng = parseFloat(document.getElementById('simLng').value) || 0;
-          simState.speed = parseFloat(document.getElementById('simSpeed').value) || 0;
-          simState.alt = parseFloat(document.getElementById('simAlt').value) || 0;
+          const latVal = document.getElementById('simLat');
+          const lngVal = document.getElementById('simLng');
+          const speedVal = document.getElementById('simSpeed');
+          const altVal = document.getElementById('simAlt');
+          
+          simState.lat = latVal ? parseFloat(latVal.value) : 0;
+          simState.lng = lngVal ? parseFloat(lngVal.value) : 0;
+          simState.speed = speedVal ? parseFloat(speedVal.value) : 0;
+          simState.alt = altVal ? parseFloat(altVal.value) : 0;
+          
           updateLCD();
           updateMap();
         }
@@ -234,8 +240,11 @@ function startGPSFix() {
       simState.hasFix = true;
       simState.sats = targetSats;
       
-      simState.lat = parseFloat(document.getElementById('simLat').value) || 40.7128;
-      simState.lng = parseFloat(document.getElementById('simLng').value) || -74.0060;
+      const latInput = document.getElementById('simLat');
+      const lngInput = document.getElementById('simLng');
+      
+      simState.lat = latInput ? parseFloat(latInput.value) : 40.7128;
+      simState.lng = lngInput ? parseFloat(lngInput.value) : -74.0060;
       simState.trail = [{ lat: simState.lat, lng: simState.lng }];
 
       if (led) led.className = 'led fixed';
@@ -279,8 +288,11 @@ function simulateRoute() {
     simState.lat = baseLat + Math.sin(angle) * 0.01;
     simState.lng = baseLng + Math.cos(angle) * 0.015;
 
-    document.getElementById('simLat').value = simState.lat.toFixed(4);
-    document.getElementById('simLng').value = simState.lng.toFixed(4);
+    const latInput = document.getElementById('simLat');
+    const lngInput = document.getElementById('simLng');
+    
+    if (latInput) latInput.value = simState.lat.toFixed(4);
+    if (lngInput) lngInput.value = simState.lng.toFixed(4);
 
     simState.trail.push({ lat: simState.lat, lng: simState.lng });
     if (simState.trail.length > 200) simState.trail.shift();
