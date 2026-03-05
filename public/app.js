@@ -134,9 +134,7 @@ function initTabs() {
       if (targetContent) {
         targetContent.classList.add('active');
         
-        // Explicitly trigger wiring diagram redraw when tab becomes visible
         if (targetId === 'wiring') {
-          console.log('Wiring tab active, drawing diagram...');
           setTimeout(drawWiringDiagram, 50);
         }
       }
@@ -434,24 +432,17 @@ function initWiringDiagram() {
     canvas.width = 800;
     canvas.height = 500;
     
-    // Ensure the context is available
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('Could not get canvas context');
-      return;
-    }
+    if (!ctx) return;
   }
   
-  // Use a more robust check for visibility
   const checkAndDraw = () => {
     const section = document.getElementById('wiring');
     if (section && section.classList.contains('active')) {
-      console.log('Wiring section active, drawing...');
       drawWiringDiagram();
     }
   };
 
-  // Create an intersection observer to draw when it becomes visible
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -462,7 +453,6 @@ function initWiringDiagram() {
 
   if (canvas) observer.observe(canvas);
   
-  // Also draw on tab clicks
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       setTimeout(checkAndDraw, 100);
@@ -470,10 +460,7 @@ function initWiringDiagram() {
     });
   });
 
-  // Global backup
   window.drawWiringNow = drawWiringDiagram;
-  
-  // Try drawing after a short delay
   setTimeout(checkAndDraw, 500);
 }
 
@@ -484,21 +471,18 @@ function drawWiringDiagram() {
   const w = canvas.width;
   const h = canvas.height;
   
-  // Hide loading text if it exists
   const loading = document.getElementById('wiringLoading');
   if (loading) loading.style.display = 'none';
 
   ctx.fillStyle = '#0d1a2a';
   ctx.fillRect(0, 0, w, h);
   
-  // Draw main components
   drawArduinoBoard(ctx, 300, 50, 200, 340);
   drawGPSModule(ctx, 50, 50, 180, 140);
   drawLCDModule(ctx, 570, 50, 190, 120);
   drawSDModule(ctx, 570, 200, 190, 140);
   drawRTCModule(ctx, 50, 230, 180, 120);
   
-  // Final Connection wires
   drawWiringConnections(ctx);
 }
 
@@ -523,7 +507,6 @@ function drawWiringConnections(ctx) {
   drawWire(ctx, 230, 290, 300, 290, '#00b4d8'); // Blue SDA->A4
   drawWire(ctx, 230, 310, 300, 310, '#ff9800'); // Orange SCL->A5
   
-  // Power Connections (Simplified)
   ctx.setLineDash([5, 5]);
   drawWire(ctx, 50, 40, 300, 40, '#e63946'); // 5V Rail
   drawWire(ctx, 50, 60, 300, 60, '#888888'); // GND Rail
@@ -549,43 +532,17 @@ function drawRTCModule(ctx, x, y, w, h) {
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('DS3231 RTC', x + w / 2, y + 20);
-  ctx.textAlign = 'left';
+  
   const pins = ['VCC', 'GND', 'SDA', 'SCL'];
+  ctx.font = '10px monospace';
   pins.forEach((pin, i) => {
+    const py = y + 45 + i * 20;
     ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x + w - 5, y + 40 + i * 20, 10, 6);
+    ctx.fillRect(x + w - 8, py - 3, 10, 6);
     ctx.fillStyle = '#ccc';
-    ctx.font = '9px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(pin, x + w - 12, y + 47 + i * 20);
-    ctx.textAlign = 'left';
+    ctx.fillText(pin, x + w - 12, py + 2);
   });
-  
-  // Connect pins to Arduino
-  ctx.beginPath();
-  ctx.strokeStyle = '#ff9800'; // SCL
-  ctx.moveTo(x + w, y + 107);
-  ctx.lineTo(x + w + 150, y + 107);
-  ctx.stroke();
-  
-  ctx.beginPath();
-  ctx.strokeStyle = '#00b4d8'; // SDA
-  ctx.moveTo(x + w, y + 87);
-  ctx.lineTo(x + w + 180, y + 87);
-  ctx.stroke();
-}
-
-function drawArduinoBoard(ctx, x, y, w, h) {
-  ctx.fillStyle = '#0066aa';
-  ctx.strokeStyle = '#0088cc';
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, w, h, 8);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 14px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('ARDUINO UNO', x + w / 2, y + 25);
 }
 
 function drawGPSModule(ctx, x, y, w, h) {
@@ -599,6 +556,17 @@ function drawGPSModule(ctx, x, y, w, h) {
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('NEO-6M GPS', x + w / 2, y + 20);
+  
+  const pins = ['VCC', 'GND', 'TX', 'RX'];
+  ctx.font = '10px monospace';
+  pins.forEach((pin, i) => {
+    const py = y + 45 + i * 20;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x + w - 8, py - 3, 10, 6);
+    ctx.fillStyle = '#ccc';
+    ctx.textAlign = 'right';
+    ctx.fillText(pin, x + w - 12, py + 2);
+  });
 }
 
 function drawLCDModule(ctx, x, y, w, h) {
@@ -608,10 +576,24 @@ function drawLCDModule(ctx, x, y, w, h) {
   roundRect(ctx, x, y, w, h, 8);
   ctx.fill();
   ctx.stroke();
+  
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x + 10, y + 35, w - 20, h - 45);
   ctx.fillStyle = '#33ff33';
   ctx.font = '10px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('16x2 LCD I2C', x + w / 2, y + 60);
+  ctx.fillText('16x2 LCD I2C', x + w / 2, y + 20);
+  
+  const pins = ['GND', 'VCC', 'SDA', 'SCL'];
+  ctx.font = '10px monospace';
+  pins.forEach((pin, i) => {
+    const py = y + 45 + i * 18;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x - 2, py - 3, 10, 6);
+    ctx.fillStyle = '#ccc';
+    ctx.textAlign = 'left';
+    ctx.fillText(pin, x + 12, py + 2);
+  });
 }
 
 function drawSDModule(ctx, x, y, w, h) {
@@ -625,6 +607,50 @@ function drawSDModule(ctx, x, y, w, h) {
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('SD MODULE', x + w / 2, y + 20);
+  
+  const pins = ['GND', 'VCC', 'MISO', 'MOSI', 'SCK', 'CS'];
+  ctx.font = '9px monospace';
+  pins.forEach((pin, i) => {
+    const py = y + 40 + i * 15;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x - 2, py - 3, 10, 6);
+    ctx.fillStyle = '#ccc';
+    ctx.textAlign = 'left';
+    ctx.fillText(pin, x + 12, py + 2);
+  });
+}
+
+function drawArduinoBoard(ctx, x, y, w, h) {
+  ctx.fillStyle = '#0066aa';
+  ctx.strokeStyle = '#0088cc';
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ARDUINO UNO', x + w / 2, y + 25);
+  
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#fff';
+  const dPins = ['AREF', 'GND', 'D13', 'D12', 'D11', 'D10', 'D9', 'D8'];
+  dPins.forEach((p, i) => {
+    ctx.textAlign = 'right';
+    ctx.fillText(p, x + w - 10, y + 50 + i * 15);
+  });
+  
+  const dPins2 = ['D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'TX', 'RX'];
+  dPins2.forEach((p, i) => {
+    ctx.textAlign = 'right';
+    ctx.fillText(p, x + w - 10, y + 180 + i * 15);
+  });
+  
+  const aPins = ['5V', 'GND', 'GND', 'VIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
+  aPins.forEach((p, i) => {
+    ctx.textAlign = 'left';
+    ctx.fillText(p, x + 10, y + 50 + i * 15);
+  });
 }
 
 function roundRect(ctx, x, y, w, h, r) {
