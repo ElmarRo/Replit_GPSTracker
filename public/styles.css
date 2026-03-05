@@ -463,6 +463,11 @@ main {
   border-radius: 12px;
   padding: 20px;
   text-align: center;
+  min-height: 400px; /* Ensure space for canvas */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 #wiringCanvas {

@@ -135,10 +135,12 @@ function initTabs() {
       if (targetContent) {
         targetContent.classList.add('active');
         targetContent.style.display = 'block';
-      }
-
-      if (targetId === 'wiring') {
-        setTimeout(drawWiringDiagram, 100);
+        
+        // Explicitly trigger wiring diagram redraw when tab becomes visible
+        if (targetId === 'wiring') {
+          console.log('Wiring tab active, drawing diagram...');
+          setTimeout(drawWiringDiagram, 50);
+        }
       }
     });
   });
@@ -429,16 +431,15 @@ function escapeHtml(text) {
 }
 
 function initWiringDiagram() {
-  const wiringTab = document.querySelector('[data-tab="wiring"]');
-  if (wiringTab) {
-    wiringTab.addEventListener('click', () => {
-      setTimeout(drawWiringDiagram, 100);
-    });
-  }
-  // Initial draw if already active
-  if (document.getElementById('wiring').classList.contains('active')) {
-    setTimeout(drawWiringDiagram, 200);
-  }
+  // Initial draw attempt
+  setTimeout(drawWiringDiagram, 500);
+  
+  // Also draw when the window is resized
+  window.addEventListener('resize', () => {
+    if (document.getElementById('wiring').classList.contains('active')) {
+      drawWiringDiagram();
+    }
+  });
 }
 
 function drawWiringDiagram() {
