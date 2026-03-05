@@ -429,7 +429,16 @@ function escapeHtml(text) {
 }
 
 function initWiringDiagram() {
-  setTimeout(drawWiringDiagram, 200);
+  const wiringTab = document.querySelector('[data-tab="wiring"]');
+  if (wiringTab) {
+    wiringTab.addEventListener('click', () => {
+      setTimeout(drawWiringDiagram, 100);
+    });
+  }
+  // Initial draw if already active
+  if (document.getElementById('wiring').classList.contains('active')) {
+    setTimeout(drawWiringDiagram, 200);
+  }
 }
 
 function drawWiringDiagram() {
