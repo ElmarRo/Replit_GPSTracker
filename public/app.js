@@ -431,8 +431,22 @@ function escapeHtml(text) {
 }
 
 function initWiringDiagram() {
+  const canvas = document.getElementById('wiringCanvas');
+  if (canvas) {
+    // Force set dimensions in style and attribute
+    canvas.width = 800;
+    canvas.height = 500;
+    canvas.style.width = '100%';
+    canvas.style.height = 'auto';
+    canvas.style.display = 'block';
+    canvas.style.visibility = 'visible';
+    canvas.style.opacity = '1';
+  }
+  
   // Initial draw attempt
+  setTimeout(drawWiringDiagram, 100);
   setTimeout(drawWiringDiagram, 500);
+  setTimeout(drawWiringDiagram, 1000);
   
   // Also draw when the window is resized
   window.addEventListener('resize', () => {

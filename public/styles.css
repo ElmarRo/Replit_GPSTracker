@@ -463,20 +463,24 @@ main {
   border-radius: 12px;
   padding: 20px;
   text-align: center;
-  min-height: 400px; /* Ensure space for canvas */
-  display: flex;
+  min-height: 540px; /* Force space for canvas + padding */
+  display: flex !important;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 
 #wiringCanvas {
-  width: 100%;
-  max-width: 800px;
-  height: auto;
+  width: 800px !important;
+  height: 500px !important;
+  max-width: 100%;
+  height: auto !important;
   background: #0d1a2a;
   border-radius: 8px;
   border: 1px solid #2a3a4e;
+  display: block !important;
+  visibility: visible !important;
 }
 
 .wiring-table {
