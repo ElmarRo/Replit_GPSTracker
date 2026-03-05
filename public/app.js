@@ -431,7 +431,6 @@ function initWiringDiagram() {
   if (canvas) {
     canvas.width = 800;
     canvas.height = 500;
-    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
   }
@@ -489,28 +488,34 @@ function drawWiringDiagram() {
 function drawWiringConnections(ctx) {
   ctx.lineWidth = 2;
   
-  // GPS to Arduino (TX/RX)
-  drawWire(ctx, 230, 110, 300, 110, '#00e676'); // Green TX->D4
-  drawWire(ctx, 230, 130, 300, 130, '#ffd60a'); // Yellow RX->D3
+  // Power Rails (Red = 5V, Black = GND)
+  // GPS Power
+  drawWire(ctx, 230, 95, 300, 110, '#e63946'); // VCC -> 5V
+  drawWire(ctx, 230, 115, 300, 125, '#000000'); // GND -> GND
   
-  // LCD to Arduino (I2C)
-  drawWire(ctx, 570, 110, 500, 110, '#00b4d8'); // Blue SDA->A4
-  drawWire(ctx, 570, 130, 500, 130, '#ff9800'); // Orange SCL->A5
+  // GPS Data
+  drawWire(ctx, 230, 135, 430, 240, '#00e676'); // TX -> D4
+  drawWire(ctx, 230, 155, 430, 255, '#ffd60a'); // RX -> D3
   
-  // SD to Arduino (SPI)
-  drawWire(ctx, 570, 240, 500, 240, '#00b4d8'); // Blue CS->D10
-  drawWire(ctx, 570, 260, 500, 260, '#ff9800'); // Orange MOSI->D11
-  drawWire(ctx, 570, 280, 500, 280, '#00e676'); // Green MISO->D12
-  drawWire(ctx, 570, 300, 500, 300, '#ffd60a'); // Yellow SCK->D13
+  // LCD I2C
+  drawWire(ctx, 570, 95, 500, 110, '#000000'); // GND -> GND
+  drawWire(ctx, 570, 113, 500, 125, '#e63946'); // VCC -> 5V
+  drawWire(ctx, 570, 131, 350, 420, '#00b4d8'); // SDA -> A4
+  drawWire(ctx, 570, 149, 350, 435, '#ff9800'); // SCL -> A5
+  
+  // SD Module SPI
+  drawWire(ctx, 570, 240, 500, 140, '#000000'); // GND -> GND
+  drawWire(ctx, 570, 255, 500, 110, '#e63946'); // VCC -> 5V
+  drawWire(ctx, 570, 270, 430, 185, '#00e676'); // MISO -> D12
+  drawWire(ctx, 570, 285, 430, 170, '#ff9800'); // MOSI -> D11
+  drawWire(ctx, 570, 300, 430, 155, '#ffd60a'); // SCK -> D13
+  drawWire(ctx, 570, 315, 430, 200, '#00b4d8'); // CS -> D10
 
-  // RTC to Arduino (I2C)
-  drawWire(ctx, 230, 290, 300, 290, '#00b4d8'); // Blue SDA->A4
-  drawWire(ctx, 230, 310, 300, 310, '#ff9800'); // Orange SCL->A5
-  
-  ctx.setLineDash([5, 5]);
-  drawWire(ctx, 50, 40, 300, 40, '#e63946'); // 5V Rail
-  drawWire(ctx, 50, 60, 300, 60, '#888888'); // GND Rail
-  ctx.setLineDash([]);
+  // RTC I2C
+  drawWire(ctx, 230, 275, 330, 110, '#e63946'); // VCC -> 5V
+  drawWire(ctx, 230, 295, 330, 125, '#000000'); // GND -> GND
+  drawWire(ctx, 230, 315, 330, 420, '#00b4d8'); // SDA -> A4
+  drawWire(ctx, 230, 335, 330, 435, '#ff9800'); // SCL -> A5
 }
 
 function drawWire(ctx, x1, y1, x2, y2, color) {
