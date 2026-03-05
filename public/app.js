@@ -490,11 +490,52 @@ function drawWiringDiagram() {
 
   ctx.fillStyle = '#0d1a2a';
   ctx.fillRect(0, 0, w, h);
+  
+  // Draw main components
   drawArduinoBoard(ctx, 300, 50, 200, 340);
   drawGPSModule(ctx, 50, 50, 180, 140);
   drawLCDModule(ctx, 570, 50, 190, 120);
   drawSDModule(ctx, 570, 200, 190, 140);
   drawRTCModule(ctx, 50, 230, 180, 120);
+  
+  // Final Connection wires
+  drawWiringConnections(ctx);
+}
+
+function drawWiringConnections(ctx) {
+  ctx.lineWidth = 2;
+  
+  // GPS to Arduino (TX/RX)
+  drawWire(ctx, 230, 110, 300, 110, '#00e676'); // Green TX->D4
+  drawWire(ctx, 230, 130, 300, 130, '#ffd60a'); // Yellow RX->D3
+  
+  // LCD to Arduino (I2C)
+  drawWire(ctx, 570, 110, 500, 110, '#00b4d8'); // Blue SDA->A4
+  drawWire(ctx, 570, 130, 500, 130, '#ff9800'); // Orange SCL->A5
+  
+  // SD to Arduino (SPI)
+  drawWire(ctx, 570, 240, 500, 240, '#00b4d8'); // Blue CS->D10
+  drawWire(ctx, 570, 260, 500, 260, '#ff9800'); // Orange MOSI->D11
+  drawWire(ctx, 570, 280, 500, 280, '#00e676'); // Green MISO->D12
+  drawWire(ctx, 570, 300, 500, 300, '#ffd60a'); // Yellow SCK->D13
+
+  // RTC to Arduino (I2C)
+  drawWire(ctx, 230, 290, 300, 290, '#00b4d8'); // Blue SDA->A4
+  drawWire(ctx, 230, 310, 300, 310, '#ff9800'); // Orange SCL->A5
+  
+  // Power Connections (Simplified)
+  ctx.setLineDash([5, 5]);
+  drawWire(ctx, 50, 40, 300, 40, '#e63946'); // 5V Rail
+  drawWire(ctx, 50, 60, 300, 60, '#888888'); // GND Rail
+  ctx.setLineDash([]);
+}
+
+function drawWire(ctx, x1, y1, x2, y2, color) {
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
 }
 
 function drawRTCModule(ctx, x, y, w, h) {
