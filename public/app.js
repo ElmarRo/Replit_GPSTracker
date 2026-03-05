@@ -127,14 +127,12 @@ function initTabs() {
       tabs.forEach(t => t.classList.remove('active'));
       contents.forEach(c => {
         c.classList.remove('active');
-        c.style.display = 'none';
       });
 
       tab.classList.add('active');
       const targetContent = document.getElementById(targetId);
       if (targetContent) {
         targetContent.classList.add('active');
-        targetContent.style.display = 'block';
         
         // Explicitly trigger wiring diagram redraw when tab becomes visible
         if (targetId === 'wiring') {
@@ -435,31 +433,48 @@ function initWiringDiagram() {
   if (canvas) {
     canvas.width = 800;
     canvas.height = 500;
+    
+    // Ensure the context is available
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
   }
   
+  // Use a more robust check for visibility
+  const checkAndDraw = () => {
+    const section = document.getElementById('wiring');
+    if (section && section.classList.contains('active')) {
+      console.log('Wiring section active, drawing...');
+      drawWiringDiagram();
+    }
+  };
+
   // Create an intersection observer to draw when it becomes visible
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        console.log('Canvas visible, drawing...');
-        drawWiringDiagram();
+        checkAndDraw();
       }
     });
   }, { threshold: 0.1 });
 
   if (canvas) observer.observe(canvas);
   
-  // Also draw on tab clicks and delays
-  ['click', 'touchstart'].forEach(evt => {
-    document.querySelector('[data-tab="wiring"]')?.addEventListener(evt, () => {
-      setTimeout(drawWiringDiagram, 10);
-      setTimeout(drawWiringDiagram, 300);
+  // Also draw on tab clicks
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setTimeout(checkAndDraw, 100);
+      setTimeout(checkAndDraw, 500);
     });
   });
 
   // Global backup
   window.drawWiringNow = drawWiringDiagram;
-  setTimeout(drawWiringDiagram, 500);
+  
+  // Try drawing after a short delay
+  setTimeout(checkAndDraw, 500);
 }
 
 function drawWiringDiagram() {
@@ -468,6 +483,11 @@ function drawWiringDiagram() {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
+  
+  // Hide loading text if it exists
+  const loading = document.getElementById('wiringLoading');
+  if (loading) loading.style.display = 'none';
+
   ctx.fillStyle = '#0d1a2a';
   ctx.fillRect(0, 0, w, h);
   drawArduinoBoard(ctx, 300, 50, 200, 340);
@@ -499,6 +519,19 @@ function drawRTCModule(ctx, x, y, w, h) {
     ctx.fillText(pin, x + w - 12, y + 47 + i * 20);
     ctx.textAlign = 'left';
   });
+  
+  // Connect pins to Arduino
+  ctx.beginPath();
+  ctx.strokeStyle = '#ff9800'; // SCL
+  ctx.moveTo(x + w, y + 107);
+  ctx.lineTo(x + w + 150, y + 107);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.strokeStyle = '#00b4d8'; // SDA
+  ctx.moveTo(x + w, y + 87);
+  ctx.lineTo(x + w + 180, y + 87);
+  ctx.stroke();
 }
 
 function drawArduinoBoard(ctx, x, y, w, h) {
