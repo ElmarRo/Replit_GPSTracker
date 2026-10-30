@@ -546,60 +546,107 @@ function drawWiringDiagram() {
 
   ctx.fillStyle = '#0d1a2a';
   ctx.fillRect(0, 0, w, h);
-  
-  drawArduinoBoard(ctx, 300, 50, 200, 340);
-  drawGPSModule(ctx, 50, 50, 180, 140);
-  drawLCDModule(ctx, 570, 50, 190, 120);
-  drawSDModule(ctx, 570, 200, 190, 140);
-  drawRTCModule(ctx, 50, 230, 180, 120);
-  
-  drawWiringConnections(ctx);
+
+  // Each draw function returns its pin positions, so wires always end on a pin
+  const uno = drawArduinoBoard(ctx, 300, 40, 200, 370);
+  const lcd = drawModule(ctx, 40, 130, 160, 120, '16x2 LCD I2C', ['VCC', 'GND', 'SDA', 'SCL'], 'right', '#1a1a4a', '#3a3a8a');
+  const rtc = drawModule(ctx, 40, 300, 160, 120, 'DS3231 RTC', ['VCC', 'GND', 'SCL', 'SDA'], 'right', '#1a1a4a', '#3a3a8a');
+  const sd = drawModule(ctx, 600, 40, 160, 170, 'SD MODULE', ['VCC', 'GND', 'SCK', 'MISO', 'MOSI', 'CS'], 'left', '#1a1a1a', '#444');
+  const gps = drawModule(ctx, 600, 250, 160, 130, 'NEO-6M GPS', ['TX', 'RX', 'VCC', 'GND'], 'left', '#1a4a1a', '#2a6a2a');
+
+  drawWiringConnections(ctx, uno, lcd, rtc, sd, gps);
+  drawWiringLegend(ctx, h);
 }
 
-function drawWiringConnections(ctx) {
-  ctx.lineWidth = 2;
-  
-  // Power Rails (Red = 5V, Black = GND)
-  // GPS Power
-  drawWire(ctx, 230, 95, 300, 110, '#e63946'); // VCC -> 5V
-  drawWire(ctx, 230, 115, 300, 125, '#000000'); // GND -> GND
-  
-  // GPS Data
-  drawWire(ctx, 230, 135, 430, 240, '#00e676'); // TX -> D4
-  drawWire(ctx, 230, 155, 430, 255, '#ffd60a'); // RX -> D3
-  
-  // LCD I2C
-  drawWire(ctx, 570, 95, 500, 110, '#000000'); // GND -> GND
-  drawWire(ctx, 570, 113, 500, 125, '#e63946'); // VCC -> 5V
-  drawWire(ctx, 570, 131, 350, 420, '#00b4d8'); // SDA -> A4
-  drawWire(ctx, 570, 149, 350, 435, '#ff9800'); // SCL -> A5
-  
-  // SD Module SPI
-  drawWire(ctx, 570, 240, 500, 140, '#000000'); // GND -> GND
-  drawWire(ctx, 570, 255, 500, 110, '#e63946'); // VCC -> 5V
-  drawWire(ctx, 570, 270, 430, 185, '#00e676'); // MISO -> D12
-  drawWire(ctx, 570, 285, 430, 170, '#ff9800'); // MOSI -> D11
-  drawWire(ctx, 570, 300, 430, 155, '#ffd60a'); // SCK -> D13
-  drawWire(ctx, 570, 315, 430, 200, '#00b4d8'); // CS -> D10
+function drawWiringConnections(ctx, uno, lcd, rtc, sd, gps) {
+  // Power: net labels instead of wires; every +5V label is the Uno's 5V pin
+  [lcd, rtc].forEach(m => {
+    drawPowerLabel(ctx, m.VCC, 'right', '+5V');
+    drawPowerLabel(ctx, m.GND, 'right', 'GND');
+  });
+  [sd, gps].forEach(m => {
+    drawPowerLabel(ctx, m.VCC, 'left', '+5V');
+    drawPowerLabel(ctx, m.GND, 'left', 'GND');
+  });
+  drawPowerLabel(ctx, uno['5V'], 'left', '+5V');
+  drawPowerLabel(ctx, uno.GND, 'left', 'GND');
 
-  // RTC I2C
-  drawWire(ctx, 230, 275, 330, 110, '#e63946'); // VCC -> 5V
-  drawWire(ctx, 230, 295, 330, 125, '#000000'); // GND -> GND
-  drawWire(ctx, 230, 315, 330, 420, '#00b4d8'); // SDA -> A4
-  drawWire(ctx, 230, 335, 330, 435, '#ff9800'); // SCL -> A5
+  // I2C bus shared by the LCD and the RTC: SDA -> A4, SCL -> A5
+  const sdaX = 270, sclX = 250;
+  const sda = '#00b4d8', scl = '#ff9800';
+  drawPath(ctx, [lcd.SDA, [sdaX, lcd.SDA[1]], [sdaX, rtc.SDA[1]], rtc.SDA], sda);
+  drawPath(ctx, [lcd.SCL, [sclX, lcd.SCL[1]], [sclX, rtc.SCL[1]], rtc.SCL], scl);
+  drawPath(ctx, [uno.A4, [sdaX, uno.A4[1]]], sda);
+  drawJunction(ctx, sdaX, uno.A4[1], sda);
+  // A5 crosses the SDA line without connecting to it, shown as a hop
+  drawPath(ctx, [uno.A5, [sdaX + 6, uno.A5[1]]], scl);
+  drawHop(ctx, sdaX, uno.A5[1], scl);
+  drawPath(ctx, [[sdaX - 6, uno.A5[1]], [sclX, uno.A5[1]]], scl);
+  drawJunction(ctx, sclX, uno.A5[1], scl);
+
+  // SD card on the SPI pins
+  drawElbow(ctx, uno.D13, sd.SCK, 540, '#ffd60a');
+  drawElbow(ctx, uno.D12, sd.MISO, 550, '#00e676');
+  drawElbow(ctx, uno.D11, sd.MOSI, 560, '#ff6ec7');
+  drawElbow(ctx, uno.D10, sd.CS, 570, '#b388ff');
+
+  // GPS on SoftwareSerial: GPS TX -> D4 (Arduino RX), GPS RX -> D3 (Arduino TX)
+  drawElbow(ctx, uno.D4, gps.TX, 540, '#00e676');
+  drawElbow(ctx, uno.D3, gps.RX, 560, '#ffd60a');
 }
 
-function drawWire(ctx, x1, y1, x2, y2, color) {
+// Wire that leaves one pin horizontally, turns at x = turnX, and enters the other
+function drawElbow(ctx, from, to, turnX, color) {
+  drawPath(ctx, [from, [turnX, from[1]], [turnX, to[1]], to], color);
+}
+
+function drawPath(ctx, points, color) {
   ctx.beginPath();
   ctx.strokeStyle = color;
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
+  ctx.lineWidth = 2;
+  ctx.moveTo(points[0][0], points[0][1]);
+  points.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
   ctx.stroke();
 }
 
-function drawRTCModule(ctx, x, y, w, h) {
-  ctx.fillStyle = '#1a1a4a';
-  ctx.strokeStyle = '#3a3a8a';
+function drawJunction(ctx, x, y, color) {
+  ctx.beginPath();
+  ctx.fillStyle = color;
+  ctx.arc(x, y, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawHop(ctx, x, y, color) {
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.arc(x, y, 6, Math.PI, 0, false);
+  ctx.stroke();
+}
+
+function drawPowerLabel(ctx, pin, side, label) {
+  const dir = side === 'right' ? 1 : -1;
+  const color = label === 'GND' ? '#9e9e9e' : '#e63946';
+  drawPath(ctx, [pin, [pin[0] + dir * 12, pin[1]]], color);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = side === 'right' ? 'left' : 'right';
+  ctx.fillText(label, pin[0] + dir * 15, pin[1] + 3);
+}
+
+function drawWiringLegend(ctx, h) {
+  ctx.fillStyle = '#9fb3c8';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('+5V and GND labels: connect every +5V to the Uno 5V pin and every GND to a Uno GND pin.', 40, h - 50);
+  ctx.fillText('A dot joins wires. Where a wire hops over another, they are not connected.', 40, h - 32);
+  ctx.fillText('LCD and RTC share the I2C bus (SDA = A4, SCL = A5). Module pin order varies: match by pin name.', 40, h - 14);
+}
+
+// Module box with labelled pins along one edge; returns { pinName: [x, y] }
+function drawModule(ctx, x, y, w, h, title, pins, side, fill, stroke) {
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
   ctx.lineWidth = 2;
   roundRect(ctx, x, y, w, h, 8);
   ctx.fill();
@@ -607,95 +654,24 @@ function drawRTCModule(ctx, x, y, w, h) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('DS3231 RTC', x + w / 2, y + 20);
-  
-  const pins = ['VCC', 'GND', 'SDA', 'SCL'];
+  ctx.fillText(title, x + w / 2, y + 22);
+
+  const pos = {};
+  const edgeX = side === 'right' ? x + w : x;
   ctx.font = '10px monospace';
   pins.forEach((pin, i) => {
-    const py = y + 45 + i * 20;
+    const py = y + 40 + i * 22;
     ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x + w - 8, py - 3, 10, 6);
+    ctx.fillRect(edgeX - 5, py - 3, 10, 6);
     ctx.fillStyle = '#ccc';
-    ctx.textAlign = 'right';
-    ctx.fillText(pin, x + w - 12, py + 2);
+    ctx.textAlign = side === 'right' ? 'right' : 'left';
+    ctx.fillText(pin, side === 'right' ? edgeX - 10 : edgeX + 10, py + 3);
+    pos[pin] = [edgeX, py];
   });
+  return pos;
 }
 
-function drawGPSModule(ctx, x, y, w, h) {
-  ctx.fillStyle = '#1a4a1a';
-  ctx.strokeStyle = '#2a6a2a';
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, w, h, 8);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('NEO-6M GPS', x + w / 2, y + 20);
-  
-  const pins = ['VCC', 'GND', 'TX', 'RX'];
-  ctx.font = '10px monospace';
-  pins.forEach((pin, i) => {
-    const py = y + 45 + i * 20;
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x + w - 8, py - 3, 10, 6);
-    ctx.fillStyle = '#ccc';
-    ctx.textAlign = 'right';
-    ctx.fillText(pin, x + w - 12, py + 2);
-  });
-}
-
-function drawLCDModule(ctx, x, y, w, h) {
-  ctx.fillStyle = '#1a1a4a';
-  ctx.strokeStyle = '#3a3a8a';
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, w, h, 8);
-  ctx.fill();
-  ctx.stroke();
-  
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x + 10, y + 35, w - 20, h - 45);
-  ctx.fillStyle = '#33ff33';
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('16x2 LCD I2C', x + w / 2, y + 20);
-  
-  const pins = ['GND', 'VCC', 'SDA', 'SCL'];
-  ctx.font = '10px monospace';
-  pins.forEach((pin, i) => {
-    const py = y + 45 + i * 18;
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x - 2, py - 3, 10, 6);
-    ctx.fillStyle = '#ccc';
-    ctx.textAlign = 'left';
-    ctx.fillText(pin, x + 12, py + 2);
-  });
-}
-
-function drawSDModule(ctx, x, y, w, h) {
-  ctx.fillStyle = '#1a1a1a';
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, w, h, 4);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('SD MODULE', x + w / 2, y + 20);
-  
-  const pins = ['GND', 'VCC', 'MISO', 'MOSI', 'SCK', 'CS'];
-  ctx.font = '9px monospace';
-  pins.forEach((pin, i) => {
-    const py = y + 40 + i * 15;
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x - 2, py - 3, 10, 6);
-    ctx.fillStyle = '#ccc';
-    ctx.textAlign = 'left';
-    ctx.fillText(pin, x + 12, py + 2);
-  });
-}
-
+// Uno with power/analog pins on the left edge and digital pins on the right
 function drawArduinoBoard(ctx, x, y, w, h) {
   ctx.fillStyle = '#0066aa';
   ctx.strokeStyle = '#0088cc';
@@ -707,26 +683,32 @@ function drawArduinoBoard(ctx, x, y, w, h) {
   ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('ARDUINO UNO', x + w / 2, y + 25);
-  
-  ctx.font = '9px monospace';
-  ctx.fillStyle = '#fff';
-  const dPins = ['AREF', 'GND', 'D13', 'D12', 'D11', 'D10', 'D9', 'D8'];
-  dPins.forEach((p, i) => {
-    ctx.textAlign = 'right';
-    ctx.fillText(p, x + w - 10, y + 50 + i * 15);
-  });
-  
-  const dPins2 = ['D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'TX', 'RX'];
-  dPins2.forEach((p, i) => {
-    ctx.textAlign = 'right';
-    ctx.fillText(p, x + w - 10, y + 180 + i * 15);
-  });
-  
-  const aPins = ['5V', 'GND', 'GND', 'VIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
-  aPins.forEach((p, i) => {
+
+  const pos = {};
+  ctx.font = '10px monospace';
+  const leftPins = ['5V', 'GND', 'GND ', 'VIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
+  leftPins.forEach((p, i) => {
+    const py = y + 40 + i * 22;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x - 5, py - 3, 10, 6);
+    ctx.fillStyle = '#fff';
     ctx.textAlign = 'left';
-    ctx.fillText(p, x + 10, y + 50 + i * 15);
+    ctx.fillText(p.trim(), x + 10, py + 3);
+    if (!(p in pos)) pos[p] = [x, py];
   });
+
+  const rightPins = ['AREF', 'GND', 'D13', 'D12', 'D11', 'D10', 'D9', 'D8',
+                     'D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'D1/TX', 'D0/RX'];
+  rightPins.forEach((p, i) => {
+    const py = y + 40 + i * 20;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x + w - 5, py - 3, 10, 6);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'right';
+    ctx.fillText(p, x + w - 10, py + 3);
+    if (!(p in pos)) pos[p] = [x + w, py];
+  });
+  return pos;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
