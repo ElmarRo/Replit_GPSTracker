@@ -66,9 +66,10 @@ module, I2C 16x2 LCD, SPI SD module, and DS3231 RTC.
 
 The LCD and RTC share the Uno's I2C bus. If the SD shield includes an RTC,
 confirm that it is a DS3231-compatible device and check its pinout; shields
-vary. The table is the pin mapping reference. The canvas drawing is
-illustrative and its wire endpoints are not guaranteed to line up precisely
-with the Arduino pin labels.
+vary. The wiring diagram on the **Wiring & Components** tab matches this
+table: every wire ends on its Arduino pin, and power is shown as `+5V` and
+`GND` labels instead of wires. Module pin order varies between boards, so
+match pins by name.
 
 Check the voltage requirements of each board before connecting it. Some
 breakout boards are not 5V tolerant even when they can be powered from 5V.
@@ -104,8 +105,8 @@ placeholder and exits with an error.
 
 ## Review notes and limitations
 
-- The wiring canvas is a visual aid; use the connection table and verify the
-  physical board pinout before wiring.
+- Verify the physical pinout of each board before wiring; module pin order
+  and labels vary between manufacturers.
 - The simulator's **LCD Display Mode** selector is present in the interface,
   but the current simulator always displays satellite count and position.
 - The simulator's GPS fix acquisition requires a target satellite count of at
