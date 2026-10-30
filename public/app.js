@@ -218,6 +218,10 @@ function initSimulator() {
   if (satsSlider && satsVal) {
     satsSlider.addEventListener('input', () => {
       satsVal.textContent = satsSlider.value;
+      if (simState.hasFix) {
+        setSats(parseInt(satsSlider.value));
+        updateLCD();
+      }
     });
   }
 
@@ -272,25 +276,23 @@ function startGPSFix() {
   const simSatsInput = document.getElementById('simSats');
   const targetSats = simSatsInput ? parseInt(simSatsInput.value) : 8;
 
+  // Satellites keep coming in after the fix until the target count is reached
   const fixInterval = setInterval(() => {
     satBuild++;
     const currentSats = Math.min(satBuild, targetSats);
-    
-    const satCountLabel = document.getElementById('satCount');
-    if (satCountLabel) satCountLabel.textContent = currentSats;
-    
-    const simSatsRange = document.getElementById('simSats');
-    if (simSatsRange) simSatsRange.value = currentSats;
-    
-    const simSatsValLabel = document.getElementById('simSatsVal');
-    if (simSatsValLabel) simSatsValLabel.textContent = currentSats;
+    setSats(currentSats);
+
+    if (simState.hasFix) {
+      updateLCD();
+      if (currentSats >= targetSats) clearInterval(fixInterval);
+      return;
+    }
 
     setLCD('Searching GPS...', "Sats: " + currentSats);
 
     if (currentSats >= 3 && satBuild >= 4) {
-      clearInterval(fixInterval);
+      if (currentSats >= targetSats) clearInterval(fixInterval);
       simState.hasFix = true;
-      simState.sats = targetSats;
       
       const latInput = document.getElementById('simLat');
       const lngInput = document.getElementById('simLng');
@@ -352,6 +354,20 @@ function simulateRoute() {
     updateLCD();
     updateMap();
   }, 500);
+}
+
+// Keep the status panel, slider and simulator state on the same satellite count
+function setSats(count) {
+  simState.sats = count;
+
+  const satCountLabel = document.getElementById('satCount');
+  if (satCountLabel) satCountLabel.textContent = count;
+
+  const simSatsRange = document.getElementById('simSats');
+  if (simSatsRange) simSatsRange.value = count;
+
+  const simSatsValLabel = document.getElementById('simSatsVal');
+  if (simSatsValLabel) simSatsValLabel.textContent = count;
 }
 
 function resetSim() {
