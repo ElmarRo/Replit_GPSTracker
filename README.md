@@ -87,8 +87,15 @@ the Arduino IDE before uploading. The sketch expects GPS data at 9600 baud and
 an LCD I2C address of `0x27`; hardware may require a different LCD address.
 
 The sketch appends CSV rows to `gpslog.csv` on the SD card. When the RTC is
-available, rows use its date and time; otherwise, the sketch records elapsed
-milliseconds. It logs only when the GPS location is valid.
+available, rows use its date and time; otherwise they use the GPS date and time
+(UTC), or elapsed milliseconds if the GPS has no time yet. It logs only while
+the GPS has a current fix: a position older than two seconds counts as no fix.
+If the RTC reports that it lost power, the sketch sets it from GPS time (UTC)
+once the GPS provides one.
+
+The LCD shows latitude and satellite count on the first row and longitude on
+the second, refreshed once per second. If no data arrives from the GPS within
+five seconds of starting, it shows `No GPS data` / `Check wiring`.
 
 ## Tests
 
@@ -99,8 +106,6 @@ placeholder and exits with an error.
 
 - The wiring canvas is a visual aid; use the connection table and verify the
   physical board pinout before wiring.
-- The sketch writes latitude and longitude to a 16-character LCD row. The
-  combined text can exceed the display width and be truncated.
 - The simulator's **LCD Display Mode** selector is present in the interface,
   but the current simulator always displays satellite count and position.
 - The simulator's GPS fix acquisition requires a target satellite count of at

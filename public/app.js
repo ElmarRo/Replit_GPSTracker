@@ -13,6 +13,11 @@ static const uint32_t GPSBaud = 9600;
 // SD Card CS pin
 const int chipSelect = 10;
 
+// Timing (milliseconds)
+const unsigned long LOG_INTERVAL = 5000;  // between SD log rows
+const unsigned long LCD_INTERVAL = 1000;  // between LCD refreshes
+const unsigned long FIX_MAX_AGE = 2000;   // older positions count as no fix
+
 TinyGPSPlus gps;
 SoftwareSerial gpsSerial(RXPin, TXPin);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -20,7 +25,9 @@ RTC_DS3231 rtc;
 
 bool sdActive = false;
 bool rtcActive = false;
+bool rtcNeedsSync = false;
 unsigned long lastLog = 0;
+unsigned long lastLcd = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -28,27 +35,32 @@ void setup() {
 
   lcd.init();
   lcd.backlight();
-  lcd.print("GPS Logger v1.2");
+  lcd.print(F("GPS Logger v1.3"));
 
   if (!SD.begin(chipSelect)) {
-    Serial.println("SD Fail");
+    Serial.println(F("SD Fail"));
   } else {
     sdActive = true;
     if (!SD.exists("gpslog.csv")) {
       File dataFile = SD.open("gpslog.csv", FILE_WRITE);
       if (dataFile) {
-        dataFile.println("Timestamp,Lat,Lon,Sats");
+        dataFile.println(F("Timestamp,Lat,Lon,Sats"));
         dataFile.close();
       }
     }
   }
 
   if (!rtc.begin()) {
-    Serial.println("RTC Fail");
+    Serial.println(F("RTC Fail"));
   } else {
     rtcActive = true;
+    // After a battery change the RTC time is wrong; set it from GPS later
+    if (rtc.lostPower()) {
+      rtcNeedsSync = true;
+      Serial.println(F("RTC lost power, will set it from GPS"));
+    }
   }
-  
+
   delay(2000);
   lcd.clear();
 }
@@ -58,53 +70,95 @@ void loop() {
     gps.encode(gpsSerial.read());
   }
 
-  if (gps.location.isValid()) {
-    // Update LCD
-    lcd.setCursor(0, 0);
-    lcd.print("Sats: ");
-    lcd.print(gps.satellites.value());
-    lcd.print("    "); // Clear trailing chars
+  // TinyGPSPlus keeps the last position after the fix is lost, so check its age
+  bool hasFix = gps.location.isValid() && gps.location.age() < FIX_MAX_AGE;
 
-    lcd.setCursor(0, 1);
-    lcd.print("Pos: ");
-    lcd.print(gps.location.lat(), 4);
-    lcd.print(",");
-    lcd.print(gps.location.lng(), 4);
-
-    // Log every 5 seconds
-    if (millis() - lastLog >= 5000) {
-      lastLog = millis();
-      logToSD();
-    }
-  } else {
-    lcd.setCursor(0, 0);
-    lcd.print("Searching GPS...");
-    lcd.setCursor(0, 1);
-    lcd.print("Sats: ");
-    lcd.print(gps.satellites.value());
+  if (rtcNeedsSync && gpsTimeValid()) {
+    rtc.adjust(DateTime(gps.date.year(), gps.date.month(), gps.date.day(),
+                        gps.time.hour(), gps.time.minute(), gps.time.second()));
+    rtcNeedsSync = false;
+    Serial.println(F("RTC set from GPS (UTC)"));
   }
+
+  // Refreshing the LCD every pass blocks long enough to drop GPS characters
+  if (millis() - lastLcd >= LCD_INTERVAL) {
+    lastLcd = millis();
+    updateLCD(hasFix);
+  }
+
+  if (hasFix && millis() - lastLog >= LOG_INTERVAL) {
+    lastLog = millis();
+    logToSD();
+  }
+}
+
+bool gpsTimeValid() {
+  return gps.date.isValid() && gps.time.isValid() && gps.date.year() > 2020;
+}
+
+int satCount() {
+  if (!gps.satellites.isValid()) return 0;
+  return min((int)gps.satellites.value(), 99);
+}
+
+void updateLCD(bool hasFix) {
+  char row[17];
+  char num[12];
+
+  if (hasFix) {
+    // "Lat  52.52001  8" and "Lon   13.40495": each row fits in 16 characters
+    dtostrf(gps.location.lat(), 9, 5, num);
+    snprintf(row, sizeof(row), "Lat %s %2d", num, satCount());
+    printRow(0, row);
+    dtostrf(gps.location.lng(), 10, 5, num);
+    snprintf(row, sizeof(row), "Lon %s", num);
+    printRow(1, row);
+  } else if (millis() > 5000 && gps.charsProcessed() < 10) {
+    printRow(0, "No GPS data");
+    printRow(1, "Check wiring");
+  } else {
+    printRow(0, "Searching GPS...");
+    snprintf(row, sizeof(row), "Sats: %d", satCount());
+    printRow(1, row);
+  }
+}
+
+// Print a full row so shorter text clears what was there before
+void printRow(uint8_t line, const char *text) {
+  char padded[17];
+  snprintf(padded, sizeof(padded), "%-16s", text);
+  lcd.setCursor(0, line);
+  lcd.print(padded);
 }
 
 void logToSD() {
   if (!sdActive) return;
 
   File dataFile = SD.open("gpslog.csv", FILE_WRITE);
-  if (dataFile) {
-    if (rtcActive) {
-      DateTime now = rtc.now();
-      dataFile.print(now.timestamp());
-    } else {
-      dataFile.print(millis());
-    }
-    dataFile.print(",");
-    dataFile.print(gps.location.lat(), 6);
-    dataFile.print(",");
-    dataFile.print(gps.location.lng(), 6);
-    dataFile.print(",");
-    dataFile.println(gps.satellites.value());
-    dataFile.close();
-    Serial.println("Logged position");
+  if (!dataFile) {
+    Serial.println(F("SD write failed"));
+    return;
   }
+
+  if (rtcActive && !rtcNeedsSync) {
+    dataFile.print(rtc.now().timestamp());
+  } else if (gpsTimeValid()) {
+    char ts[20];
+    snprintf(ts, sizeof(ts), "%04u-%02u-%02uT%02u:%02u:%02u",
+             gps.date.year(), gps.date.month(), gps.date.day(),
+             gps.time.hour(), gps.time.minute(), gps.time.second());
+    dataFile.print(ts);
+  } else {
+    dataFile.print(millis());
+  }
+  dataFile.print(",");
+  dataFile.print(gps.location.lat(), 6);
+  dataFile.print(",");
+  dataFile.print(gps.location.lng(), 6);
+  dataFile.print(",");
+  dataFile.println(satCount());
+  dataFile.close();
+  Serial.println(F("Logged position"));
 }
 `;
 
@@ -309,8 +363,9 @@ function updateLCD() {
   const lng = simState.lng;
   const sats = simState.sats;
 
-  const row1 = "Sats: " + sats;
-  const row2 = "Pos: " + lat.toFixed(4) + "," + lng.toFixed(4);
+  // Same layout as the sketch's updateLCD()
+  const row1 = "Lat " + lat.toFixed(5).padStart(9) + " " + String(Math.min(sats, 99)).padStart(2);
+  const row2 = "Lon " + lng.toFixed(5).padStart(10);
 
   setLCD(padLCD(row1), padLCD(row2));
 }
