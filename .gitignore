@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# Claude Code local settings (approved commands can contain secrets)
+.claude/settings.local.json
